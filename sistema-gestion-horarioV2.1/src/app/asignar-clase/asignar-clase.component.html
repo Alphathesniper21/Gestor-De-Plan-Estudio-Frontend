@@ -1,0 +1,91 @@
+<div class="page-head">
+  <div>
+    <h1>Asignar horario</h1>
+    <p>Selecciona la materia, el aula y el espacio en el que dictarás tu clase.</p>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <h2>Datos de la clase</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>Materia</label>
+        <select [(ngModel)]="materiaId">
+          <option [ngValue]="null" disabled>Selecciona una materia</option>
+          @for (m of materias(); track m.codigo) {
+            <option [ngValue]="m.codigo">{{ m.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Número de grupo</label>
+        <input type="number" min="1" [(ngModel)]="grupo" />
+      </div>
+
+      <div class="field">
+        <label>Aula</label>
+        <select [(ngModel)]="aulaId">
+          <option [ngValue]="null" disabled>Selecciona un aula</option>
+          @for (a of aulas(); track a.id) {
+            <option [ngValue]="a.id">Aula {{ a.id }} · {{ a.capacidad }} puestos</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Cupo máximo</label>
+        <input type="number" min="1" [(ngModel)]="cupoMaximo" />
+      </div>
+
+      <div class="field">
+        <label>Día</label>
+        <select [(ngModel)]="dia">
+          @for (d of dias; track d) {
+            <option [ngValue]="d">{{ d }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Hora de inicio</label>
+        <select [(ngModel)]="horaInicio">
+          @for (h of horasDisponibles(); track h) {
+            <option [ngValue]="h">{{ fmt(h) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Hora de fin (2 horas)</label>
+        <input type="text" [value]="fmt(horaFin)" disabled />
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-error">{{ error() }}</div>
+    }
+
+    @if (exito()) {
+      <div class="alert alert-ok">¡Clase asignada correctamente!</div>
+    }
+
+    <div class="acciones">
+      <button class="btn btn-primary" type="button" (click)="asignar()" [disabled]="enviando()">Asignar horario</button>
+      <button class="btn btn-outline" type="button" (click)="limpiar()">Limpiar</button>
+      <button class="btn btn-outline" type="button" (click)="verHorario()">Ver mi horario</button>
+    </div>
+  </div>
+
+  <div class="card previa">
+    <h2>Vista previa</h2>
+    <div class="previa-bloque" [style.background]="color()">
+      <strong>{{ nombreMateria() }}</strong>
+      <span>Grupo {{ grupo || '--' }} · {{ etiquetaAula() }}</span>
+      <span>{{ dia }}</span>
+      <span>{{ fmt(horaInicio) }} - {{ fmt(horaFin) }}</span>
+    </div>
+    <p>Así se verá la clase en tu horario semanal.</p>
+  </div>
+</div>

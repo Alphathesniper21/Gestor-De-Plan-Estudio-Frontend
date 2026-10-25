@@ -1,0 +1,38 @@
+<div class="shell" [class.cerrado]="!menuAbierto()">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">🎓</span>
+      <div>
+        <strong>SGH</strong>
+        <small>Gestión de Horario</small>
+      </div>
+    </div>
+
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">🏠 Inicio</a>
+      <a routerLink="/horario" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">📅 Mi horario</a>
+      <a routerLink="/horario/asignar" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">➕ Asignar horario</a>
+      <a routerLink="/horario/clases" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">📚 Mis clases</a>
+    </nav>
+  </aside>
+
+  <div class="contenido">
+    <header class="topbar">
+      <button class="menu-btn" type="button" (click)="alternarMenu()">☰</button>
+      <div class="usuario">
+        <span class="avatar">CR</span>
+        <div>
+          <strong>Prof. Carlos Rodríguez</strong>
+          <small>Facultad de Ingeniería</small>
+        </div>
+      </div>
+    </header>
+
+    <main class="principal">
+      @if (svc.errorApi()) {
+        <div class="alert alert-error aviso">{{ svc.errorApi() }}</div>
+      }
+      <router-outlet />
+    </main>
+  </div>
+</div>

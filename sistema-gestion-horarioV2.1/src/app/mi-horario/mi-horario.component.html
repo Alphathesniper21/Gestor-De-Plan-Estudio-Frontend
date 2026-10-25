@@ -1,0 +1,51 @@
+<div class="page-head">
+  <div>
+    <h1>Mi horario</h1>
+    <p>Haz clic en una celda vacía para asignar una clase en ese espacio.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/horario/asignar">+ Asignar horario</a>
+</div>
+
+<div class="card calendario-wrap">
+  <div class="calendario">
+    @for (d of dias; track d) {
+      <div class="cab" [style.grid-row]="1" [style.grid-column]="col(d)">{{ d }}</div>
+    }
+
+    @for (h of horas; track h) {
+      <div class="hora" [style.grid-row]="fila(h)" [style.grid-column]="1">{{ fmt(h) }}</div>
+      @for (d of dias; track d) {
+        <button class="celda" type="button" [style.grid-row]="fila(h)" [style.grid-column]="col(d)" (click)="asignarEn(d, h)"></button>
+      }
+    }
+
+    @for (c of clases(); track c.id) {
+      <div
+        class="bloque"
+        [style.grid-column]="col(c.dia)"
+        [style.grid-row]="fila(c.horaInicio) + ' / ' + fila(c.horaFin)"
+        [style.background]="c.color"
+        (click)="seleccionada.set(c)"
+      >
+        <strong>{{ c.materia }}</strong>
+        <span>Grupo {{ c.grupo }} · {{ c.aula }}</span>
+        <span>{{ fmt(c.horaInicio) }} - {{ fmt(c.horaFin) }}</span>
+      </div>
+    }
+  </div>
+</div>
+
+@if (seleccionada(); as c) {
+  <div class="modal-fondo" (click)="seleccionada.set(null)">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2><span class="dot" [style.background]="c.color"></span>{{ c.materia }}</h2>
+      <p>Grupo {{ c.grupo }}</p>
+      <p>Aula: {{ c.aula }}</p>
+      <p>{{ c.dia }} · {{ fmt(c.horaInicio) }} - {{ fmt(c.horaFin) }}</p>
+      <div class="modal-acciones">
+        <button class="btn btn-danger" type="button" (click)="eliminar(c)">Eliminar</button>
+        <button class="btn btn-outline" type="button" (click)="seleccionada.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

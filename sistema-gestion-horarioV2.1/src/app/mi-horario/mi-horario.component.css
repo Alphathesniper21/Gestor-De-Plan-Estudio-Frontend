@@ -1,0 +1,57 @@
+.calendario-wrap { padding: 12px; overflow-x: auto; }
+
+.calendario {
+  display: grid;
+  grid-template-columns: 70px repeat(6, minmax(130px, 1fr));
+  grid-template-rows: 44px repeat(15, 58px);
+  min-width: 880px;
+}
+
+.cab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--navy);
+  border-left: 2px solid var(--white);
+}
+
+.hora {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+.celda {
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.celda:hover { background: #fff7ed; }
+
+.bloque {
+  z-index: 2;
+  margin: 3px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  transition: transform 0.12s;
+}
+
+.bloque:hover { transform: scale(1.02); }
+.bloque strong { font-size: 0.88rem; }
+.bloque span { font-size: 0.75rem; opacity: 0.95; }

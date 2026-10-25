@@ -1,0 +1,38 @@
+<div class="page-head">
+  <div>
+    <h1>Mis clases</h1>
+    <p>Listado de las clases que has asignado en tu horario.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/horario/asignar">+ Asignar horario</a>
+</div>
+
+<div class="card">
+  @if (lista().length) {
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Materia</th>
+          <th>Grupo</th>
+          <th>Aula</th>
+          <th>Día</th>
+          <th>Horario</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of lista(); track c.id) {
+          <tr>
+            <td><span class="dot" [style.background]="c.color"></span>{{ c.materia }}</td>
+            <td>{{ c.grupo }}</td>
+            <td>{{ c.aula }}</td>
+            <td>{{ c.dia }}</td>
+            <td>{{ fmt(c.horaInicio) }} - {{ fmt(c.horaFin) }}</td>
+            <td><button class="btn btn-danger btn-sm" type="button" (click)="eliminar(c)">Eliminar</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <div class="vacio">Aún no has asignado clases.</div>
+  }
+</div>

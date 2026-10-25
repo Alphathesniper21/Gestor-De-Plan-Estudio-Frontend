@@ -1,0 +1,26 @@
+.layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+
+.previa-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 12px;
+  color: var(--white);
+  margin-bottom: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.previa-bloque strong { font-size: 1.05rem; }
+.previa-bloque span { font-size: 0.9rem; opacity: 0.95; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,52 @@
+<div class="page-head">
+  <div>
+    <h1>Bienvenido, profesor 👋</h1>
+    <p>Organiza tus clases de la semana de forma rápida.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/horario/asignar">+ Asignar horario</a>
+</div>
+
+<div class="stats">
+  <div class="card stat">
+    <span class="stat-icono naranja">📚</span>
+    <div><strong>{{ svc.totalClases() }}</strong><small>Clases asignadas</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono azul">⏱️</span>
+    <div><strong>{{ svc.totalHoras() }} h</strong><small>Horas semanales</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono verde">📖</span>
+    <div><strong>{{ svc.totalMaterias() }}</strong><small>Materias</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono morado">🏫</span>
+    <div><strong>{{ svc.totalAulas() }}</strong><small>Aulas utilizadas</small></div>
+  </div>
+</div>
+
+<div class="dos-columnas">
+  <div class="card">
+    <h2>Clases de hoy{{ hoy ? ' · ' + hoy : '' }}</h2>
+    @for (c of clasesHoy(); track c.id) {
+      <div class="item-hoy" [style.border-left-color]="c.color">
+        <div>
+          <strong>{{ c.materia }}</strong>
+          <small>Grupo {{ c.grupo }} · {{ c.aula }}</small>
+        </div>
+        <span class="hora">{{ svc.formatoHora(c.horaInicio) }} - {{ svc.formatoHora(c.horaFin) }}</span>
+      </div>
+    } @empty {
+      <div class="vacio">No tienes clases programadas para hoy.</div>
+    }
+  </div>
+
+  <div class="card">
+    <h2>Accesos rápidos</h2>
+    <div class="accesos">
+      <a class="btn btn-outline" routerLink="/horario">📅 Ver mi horario</a>
+      <a class="btn btn-outline" routerLink="/horario/asignar">➕ Asignar una clase</a>
+      <a class="btn btn-outline" routerLink="/horario/clases">📚 Gestionar mis clases</a>
+    </div>
+  </div>
+</div>
