@@ -1,0 +1,79 @@
+<div class="page-head">
+  <div>
+    <h1>Asignar sesión</h1>
+    <p>Ubica una sesión de 2 horas de un grupo en el horario semanal.</p>
+  </div>
+</div>
+
+@if (aviso) {
+  <div class="alert alert-error sin-margen">El back aún no tiene endpoint de sesiones: la sesión se mantiene solo mientras la página esté abierta.</div>
+}
+
+<div class="layout">
+  <div class="card">
+    <h2>Datos de la sesión</h2>
+
+    @if (!grupos().length) {
+      <div class="vacio">Aún no hay grupos. Crea uno primero en la sección Grupos.</div>
+    } @else {
+      <div class="form-grid">
+        <div class="field">
+          <label>Grupo</label>
+          <select [(ngModel)]="grupoId">
+            <option [ngValue]="null" disabled>Selecciona un grupo</option>
+            @for (g of grupos(); track g.id) {
+              <option [ngValue]="g.id">{{ g.etiqueta }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Día</label>
+          <select [(ngModel)]="dia">
+            @for (d of dias; track d) {
+              <option [ngValue]="d">{{ d }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Hora de inicio</label>
+          <select [(ngModel)]="horaInicio">
+            @for (h of horasDisponibles(); track h) {
+              <option [ngValue]="h">{{ fmt(h) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Hora de fin (2 horas)</label>
+          <input type="text" [value]="fmt(horaFin)" disabled />
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="alert alert-error">{{ error() }}</div>
+      }
+
+      @if (exito()) {
+        <div class="alert alert-ok">¡Sesión asignada correctamente!</div>
+      }
+
+      <div class="acciones">
+        <button class="btn btn-primary" type="button" [disabled]="enviando()" (click)="asignar()">Asignar sesión</button>
+        <button class="btn btn-outline" type="button" (click)="limpiar()">Limpiar</button>
+        <button class="btn btn-outline" type="button" (click)="verHorario()">Ver horario</button>
+      </div>
+    }
+  </div>
+
+  <div class="card">
+    <h2>Vista previa</h2>
+    <div class="previa-bloque" [style.background]="color()">
+      <strong>{{ etiquetaGrupo() }}</strong>
+      <span>{{ dia }}</span>
+      <span>{{ fmt(horaInicio) }} - {{ fmt(horaFin) }}</span>
+    </div>
+    <p>Así se verá la sesión en el horario semanal.</p>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+<div class="login-fondo">
+  <div class="login-tarjeta">
+    <div class="login-marca">
+      <span class="logo">🎓</span>
+      <h1>Sistema de Gestión de Horario</h1>
+      <p>Ingresa con tu cuenta institucional</p>
+    </div>
+
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" placeholder="nombre de usuario" [(ngModel)]="usuario" (keyup.enter)="ingresar()" />
+    </div>
+
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" placeholder="••••••••" [(ngModel)]="clave" (keyup.enter)="ingresar()" />
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-error">{{ error() }}</div>
+    }
+
+    <button class="btn btn-primary entrar" type="button" [disabled]="cargando()" (click)="ingresar()">
+      {{ cargando() ? 'Ingresando...' : 'Ingresar' }}
+    </button>
+
+    @if (modoPrueba) {
+      <p class="ayuda">Modo prueba: cualquier usuario y contraseña. Si el usuario contiene "consult", entra como CONSULTANTE; si no, como GESTOR.</p>
+    }
+  </div>
+</div>

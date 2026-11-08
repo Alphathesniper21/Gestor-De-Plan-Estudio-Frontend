@@ -1,0 +1,85 @@
+<div class="page-head">
+  <div>
+    <h1>Grupos</h1>
+    <p>Grupos por materia, con su cupo planeado y sesiones asignadas.</p>
+  </div>
+  <button class="btn btn-outline" type="button" (click)="recargar()">↻ Actualizar</button>
+</div>
+
+@if (auth.esGestor()) {
+  <div class="card bloque-form">
+    <h2>Nuevo grupo</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>Materia</label>
+        <select [(ngModel)]="materiaId">
+          <option [ngValue]="null" disabled>Selecciona una materia</option>
+          @for (m of materias(); track m.id) {
+            <option [ngValue]="m.id">{{ m.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label>Número de grupo</label>
+        <input type="number" min="1" [(ngModel)]="numeroGrupo" />
+      </div>
+      <div class="field">
+        <label>Cupo planeado (máx. {{ cupoMaximo }})</label>
+        <input type="number" min="1" [max]="cupoMaximo" [(ngModel)]="cupoPlaneado" />
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-error">{{ error() }}</div>
+    }
+    @if (exito()) {
+      <div class="alert alert-ok">Grupo creado correctamente.</div>
+    }
+
+    <div class="acciones">
+      <button class="btn btn-primary" type="button" (click)="crear()">Crear grupo</button>
+    </div>
+  </div>
+}
+
+<div class="card">
+  <div class="buscador">
+    <input type="search" placeholder="Buscar por materia..." [value]="filtro()" (input)="buscar($event)" />
+  </div>
+  @if (cargando()) {
+    <div class="vacio">Cargando...</div>
+  } @else if (visibles().length) {
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Materia</th>
+            <th>Grupo</th>
+            <th>Cupo</th>
+            <th>Sesiones</th>
+            @if (auth.esGestor()) {
+              <th></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of visibles(); track f.grupo.id) {
+            <tr>
+              <td>{{ f.materia }}</td>
+              <td>{{ f.grupo.numeroGrupo }}</td>
+              <td>{{ f.grupo.cupoPlaneado }}</td>
+              <td>
+                <span class="badge" [class.badge-si]="f.sesiones >= f.maxSesiones">{{ f.sesiones }} / {{ f.maxSesiones }}</span>
+              </td>
+              @if (auth.esGestor()) {
+                <td><button class="btn btn-danger btn-sm" type="button" (click)="eliminar(f.grupo.id)">Eliminar</button></td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="vacio">No hay grupos para mostrar.</div>
+  }
+</div>

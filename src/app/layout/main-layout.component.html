@@ -1,0 +1,46 @@
+<div class="shell" [class.cerrado]="!menuAbierto()">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">🎓</span>
+      <div>
+        <strong>SGH</strong>
+        <small>Gestión de Horario</small>
+      </div>
+    </div>
+
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }" (click)="cerrarEnMovil()">🏠 Inicio</a>
+      <a routerLink="/horario" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }" (click)="cerrarEnMovil()">📅 Horario</a>
+      <a routerLink="/materias" routerLinkActive="activo" (click)="cerrarEnMovil()">📖 Materias</a>
+      <a routerLink="/grupos" routerLinkActive="activo" (click)="cerrarEnMovil()">👥 Grupos</a>
+      @if (auth.esGestor()) {
+        <a routerLink="/horario/asignar" routerLinkActive="activo" (click)="cerrarEnMovil()">➕ Asignar sesión</a>
+        <a routerLink="/usuarios" routerLinkActive="activo" (click)="cerrarEnMovil()">👤 Usuarios</a>
+      }
+    </nav>
+
+    <button class="salir" type="button" (click)="salir()">⎋ Cerrar sesión</button>
+  </aside>
+
+  <div class="fondo" (click)="menuAbierto.set(false)"></div>
+
+  <div class="contenido">
+    <header class="topbar">
+      <button class="menu-btn" type="button" aria-label="Menú" (click)="alternarMenu()">☰</button>
+      <div class="usuario">
+        <span class="avatar">{{ auth.iniciales() }}</span>
+        <div>
+          <strong>{{ auth.usuario() }}</strong>
+          <small>{{ auth.rol() }}</small>
+        </div>
+      </div>
+    </header>
+
+    <main class="principal">
+      @if (svc.errorApi()) {
+        <div class="alert alert-error aviso">{{ svc.errorApi() }}</div>
+      }
+      <router-outlet />
+    </main>
+  </div>
+</div>

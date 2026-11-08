@@ -1,0 +1,96 @@
+<div class="page-head">
+  <div>
+    <h1>Materias</h1>
+    <p>Catálogo de materias del plan académico.</p>
+  </div>
+  <button class="btn btn-outline" type="button" (click)="recargar()">↻ Actualizar</button>
+</div>
+
+@if (auth.esGestor()) {
+  <div class="card bloque-form">
+    <h2>{{ editandoId === null ? 'Nueva materia' : 'Editar materia' }}</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" [(ngModel)]="nombre" />
+      </div>
+      <div class="field">
+        <label>Semestre</label>
+        <input type="number" min="1" [(ngModel)]="semestre" />
+      </div>
+      <div class="field">
+        <label>Créditos</label>
+        <input type="number" min="1" [(ngModel)]="ncreditos" />
+      </div>
+      <div class="field">
+        <label>Horas semanales</label>
+        <input type="number" min="2" step="2" [(ngModel)]="horasDeLaMateria" />
+      </div>
+      <label class="check">
+        <input type="checkbox" [(ngModel)]="correlativa" />
+        Es correlativa
+      </label>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-error">{{ error() }}</div>
+    }
+    @if (exito()) {
+      <div class="alert alert-ok">Materia guardada correctamente.</div>
+    }
+
+    <div class="acciones">
+      <button class="btn btn-primary" type="button" (click)="guardar()">{{ editandoId === null ? 'Crear materia' : 'Guardar cambios' }}</button>
+      @if (editandoId !== null) {
+        <button class="btn btn-outline" type="button" (click)="cancelar()">Cancelar</button>
+      }
+    </div>
+  </div>
+}
+
+<div class="card">
+  <div class="buscador">
+    <input type="search" placeholder="Buscar materia..." [value]="filtro()" (input)="buscar($event)" />
+  </div>
+  @if (cargando()) {
+    <div class="vacio">Cargando...</div>
+  } @else if (visibles().length) {
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Materia</th>
+            <th>Semestre</th>
+            <th>Créditos</th>
+            <th>Horas</th>
+            <th>Correlativa</th>
+            @if (auth.esGestor()) {
+              <th></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of visibles(); track m.id) {
+            <tr>
+              <td>{{ m.nombre }}</td>
+              <td>{{ m.semestre }}</td>
+              <td>{{ m.ncreditos }}</td>
+              <td>{{ m.horasDeLaMateria }}</td>
+              <td>
+                <span class="badge" [class.badge-si]="m.correlativa">{{ m.correlativa ? 'Sí' : 'No' }}</span>
+              </td>
+              @if (auth.esGestor()) {
+                <td class="acciones-fila">
+                  <button class="btn btn-outline btn-sm" type="button" (click)="editar(m)">Editar</button>
+                  <button class="btn btn-danger btn-sm" type="button" (click)="eliminar(m.id)">Eliminar</button>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="vacio">No hay materias para mostrar.</div>
+  }
+</div>
