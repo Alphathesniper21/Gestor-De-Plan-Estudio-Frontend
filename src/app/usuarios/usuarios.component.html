@@ -7,7 +7,7 @@
 </div>
 
 <div class="card bloque-form">
-  <h2>Nuevo usuario</h2>
+  <h2>{{ editandoId === null ? 'Nuevo usuario' : 'Editar usuario' }}</h2>
   <div class="form-grid">
     <div class="field">
       <label>Nombre</label>
@@ -19,15 +19,15 @@
     </div>
     <div class="field">
       <label>Usuario</label>
-      <input type="text" [(ngModel)]="username" />
+      <input type="text" [(ngModel)]="username" [disabled]="editandoId !== null" />
     </div>
     <div class="field">
-      <label>Contraseña</label>
-      <input type="password" [(ngModel)]="password" />
+      <label>{{ editandoId === null ? 'Contraseña' : 'Nueva contraseña (opcional)' }}</label>
+      <input type="password" [(ngModel)]="password" [placeholder]="editandoId === null ? '' : 'Déjala vacía para conservar la actual'" />
     </div>
     <div class="field">
       <label>Rol</label>
-      <select [(ngModel)]="rol">
+      <select [(ngModel)]="rol" [disabled]="editandoMiCuenta">
         <option value="GESTOR">GESTOR</option>
         <option value="CONSULTANTE">CONSULTANTE</option>
       </select>
@@ -38,11 +38,14 @@
     <div class="alert alert-error">{{ error() }}</div>
   }
   @if (exito()) {
-    <div class="alert alert-ok">Usuario creado correctamente.</div>
+    <div class="alert alert-ok">{{ exito() }}</div>
   }
 
   <div class="acciones">
-    <button class="btn btn-primary" type="button" (click)="crear()">Crear usuario</button>
+    <button class="btn btn-primary" type="button" (click)="guardar()">{{ editandoId === null ? 'Crear usuario' : 'Guardar cambios' }}</button>
+    @if (editandoId !== null) {
+      <button class="btn btn-outline" type="button" (click)="cancelar()">Cancelar</button>
+    }
   </div>
 </div>
 
@@ -71,7 +74,8 @@
               <td>{{ u.username }}</td>
               <td>{{ u.correo }}</td>
               <td><span class="badge" [class.badge-si]="u.rol === 'GESTOR'">{{ u.rol }}</span></td>
-              <td>
+              <td class="acciones-fila">
+                <button class="btn btn-outline btn-sm" type="button" (click)="editar(u)">Editar</button>
                 <button class="btn btn-danger btn-sm" type="button" [disabled]="u.username === auth.usuario()" (click)="eliminar(u.id)">Eliminar</button>
               </td>
             </tr>
