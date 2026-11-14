@@ -1,9 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthResponse, RolUsuario } from '../models/usuario.dto';
+import { formulario } from './http-form';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -26,9 +27,8 @@ export class AuthService {
       return null;
     }
     try {
-      const params = new HttpParams().set('nombreUsuario', nombreUsuario).set('contrasenia', contrasenia);
       const respuesta = await firstValueFrom(
-        this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, null, { params })
+        this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, formulario({ nombreUsuario, contrasenia }))
       );
       this.guardar(respuesta, nombreUsuario);
       return null;
@@ -40,13 +40,40 @@ export class AuthService {
   }
 
   logout(): void {
+    this.cerrarSesionLocal();
+    this.router.navigate(['/login']);
+  }
+
+  /** Borra la sesión del navegador sin navegar (útil dentro de un guard). */
+  cerrarSesionLocal(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('rol');
     localStorage.removeItem('usuario');
     this.token.set(null);
     this.rol.set(null);
     this.usuario.set('');
-    this.router.navigate(['/login']);
+  }
+
+  /**
+   * Hay token y, si es un JWT con claim "exp", todavía no venció. Si el token
+   * no se puede leer (p. ej. el de modo mock) se asume vigente: el back decide.
+   */
+  sesionValida(): boolean {
+    const token = this.token();
+    if (!token) return false;
+    const exp = this.expiracion(token);
+    return exp === null || exp * 1000 > Date.now();
+  }
+
+  private expiracion(token: string): number | null {
+    try {
+      const carga = token.split('.')[1];
+      if (!carga) return null;
+      const exp = JSON.parse(atob(carga.replace(/-/g, '+').replace(/_/g, '/'))).exp;
+      return typeof exp === 'number' ? exp : null;
+    } catch {
+      return null;
+    }
   }
 
   private guardar(respuesta: AuthResponse, usuario: string): void {

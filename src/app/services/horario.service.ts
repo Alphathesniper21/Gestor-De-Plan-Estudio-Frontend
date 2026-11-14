@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { GrupoDTO } from '../models/grupo.dto';
@@ -7,6 +7,7 @@ import { MateriaDTO, NuevaMateria } from '../models/materia.dto';
 import { SesionDTO } from '../models/sesion.dto';
 import { ClaseHorario, Dia, NuevaSesion } from '../models/horario.model';
 import { GRUPOS_MOCK, MATERIAS_MOCK, SESIONES_MOCK } from '../mock/horario.mock';
+import { DatosForm, formulario } from './http-form';
 
 const CUPO_MAXIMO = 44;
 const LOCAL_KEY = 'sesiones-local';
@@ -92,6 +93,7 @@ export class HorarioService {
   async crearMateria(m: NuevaMateria): Promise<string | null> {
     if (!m.nombre.trim()) return 'Ingresa el nombre de la materia.';
     if (m.semestre < 1 || m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa semestre, créditos y horas.';
+    if (m.horasDeLaMateria % 2 !== 0) return 'Las horas deben ser pares: cada sesión dura 2 horas.';
     if (!environment.usarMock) {
       const error = await this.llamar('POST', '/materia/crear', { ...m });
       if (error) return error;
@@ -105,6 +107,7 @@ export class HorarioService {
   async actualizarMateria(m: MateriaDTO): Promise<string | null> {
     if (!m.nombre.trim()) return 'Ingresa el nombre de la materia.';
     if (m.semestre < 1 || m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa semestre, créditos y horas.';
+    if (m.horasDeLaMateria % 2 !== 0) return 'Las horas deben ser pares: cada sesión dura 2 horas.';
     if (!environment.usarMock) {
       const error = await this.llamar('PUT', '/materia/actualizar', {
         id: m.id,
@@ -147,6 +150,25 @@ export class HorarioService {
       return null;
     }
     this.grupos.update(l => [...l, { id: this.siguienteId(l), materiaId, numeroGrupo, cupoPlaneado }]);
+    return null;
+  }
+
+  async actualizarGrupo(id: number, numeroGrupo: number | null, cupoPlaneado: number | null): Promise<string | null> {
+    const grupo = this.grupos().find(g => g.id === id);
+    if (!grupo) return 'El grupo no existe.';
+    if (numeroGrupo === null || numeroGrupo < 1) return 'Ingresa el número de grupo.';
+    if (cupoPlaneado === null || cupoPlaneado < 1) return 'Ingresa el cupo planeado.';
+    if (cupoPlaneado > CUPO_MAXIMO) return `El cupo máximo permitido es ${CUPO_MAXIMO}.`;
+    if (this.grupos().some(g => g.id !== id && g.materiaId === grupo.materiaId && g.numeroGrupo === numeroGrupo)) {
+      return 'La materia ya tiene ese número de grupo.';
+    }
+    if (!environment.usarMock) {
+      const error = await this.llamar('PUT', '/grupo/actualizar', { id, numeroGrupo, cupoPlaneado }, MSG_GRUPOS);
+      if (error) return error;
+      this.cargarGrupos();
+      return null;
+    }
+    this.grupos.update(l => l.map(g => (g.id === id ? { ...g, numeroGrupo, cupoPlaneado } : g)));
     return null;
   }
 
@@ -231,11 +253,10 @@ export class HorarioService {
     }).add(() => this.terminar());
   }
 
-  private async llamar(metodo: 'POST' | 'PUT' | 'DELETE', ruta: string, datos: Record<string, string | number | boolean> = {}, mensaje403 = ''): Promise<string | null> {
-    let params = new HttpParams();
-    for (const [clave, valor] of Object.entries(datos)) params = params.set(clave, String(valor));
+  private async llamar(metodo: 'POST' | 'PUT' | 'DELETE', ruta: string, datos: DatosForm = {}, mensaje403 = ''): Promise<string | null> {
+    const body = metodo === 'DELETE' ? null : formulario(datos);
     try {
-      await firstValueFrom(this.http.request(metodo, `${this.api}${ruta}`, { params, responseType: 'text' }));
+      await firstValueFrom(this.http.request(metodo, `${this.api}${ruta}`, { body, responseType: 'text' }));
       return null;
     } catch (e) {
       if (mensaje403 && (e as HttpErrorResponse).status === 403) return mensaje403;

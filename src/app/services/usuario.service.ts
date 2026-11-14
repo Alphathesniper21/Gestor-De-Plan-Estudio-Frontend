@@ -1,8 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RolUsuario, UsuarioDTO } from '../models/usuario.dto';
+import { DatosForm, formulario } from './http-form';
 
 export interface NuevoUsuario {
   nombre: string;
@@ -10,6 +11,15 @@ export interface NuevoUsuario {
   username: string;
   password: string;
   rol: RolUsuario;
+}
+
+export interface EdicionUsuario {
+  id: number;
+  nombre: string;
+  correo: string;
+  rol: RolUsuario;
+  /** Vacía = no cambiar la contraseña. */
+  password: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -57,6 +67,24 @@ export class UsuarioService {
     return null;
   }
 
+  async actualizar(u: EdicionUsuario): Promise<string | null> {
+    if (!u.nombre.trim() || !u.correo.trim()) return 'Completa el nombre y el correo.';
+    if (!environment.usarMock) {
+      const error = await this.llamar('PUT', '/usuario/actualizar', {
+        id: u.id,
+        nombre: u.nombre,
+        correo: u.correo,
+        rol: u.rol,
+        password: u.password.trim() ? u.password : null
+      });
+      if (error) return error;
+      this.cargar();
+      return null;
+    }
+    this.usuarios.update(l => l.map(x => (x.id === u.id ? { ...x, nombre: u.nombre, correo: u.correo, rol: u.rol } : x)));
+    return null;
+  }
+
   async eliminar(id: number): Promise<string | null> {
     if (!environment.usarMock) {
       const error = await this.llamar('DELETE', `/usuario/eliminar/${id}`);
@@ -66,11 +94,10 @@ export class UsuarioService {
     return null;
   }
 
-  private async llamar(metodo: 'POST' | 'DELETE', ruta: string, datos: Record<string, string | number | boolean> = {}): Promise<string | null> {
-    let params = new HttpParams();
-    for (const [clave, valor] of Object.entries(datos)) params = params.set(clave, String(valor));
+  private async llamar(metodo: 'POST' | 'PUT' | 'DELETE', ruta: string, datos: DatosForm = {}): Promise<string | null> {
+    const body = metodo === 'DELETE' ? null : formulario(datos);
     try {
-      await firstValueFrom(this.http.request(metodo, `${this.api}${ruta}`, { params, responseType: 'text' }));
+      await firstValueFrom(this.http.request(metodo, `${this.api}${ruta}`, { body, responseType: 'text' }));
       return null;
     } catch (e) {
       return this.mensajeError(e);

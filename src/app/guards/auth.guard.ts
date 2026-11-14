@@ -4,7 +4,9 @@ import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.logueado() ? true : inject(Router).createUrlTree(['/login']);
+  if (auth.sesionValida()) return true;
+  auth.cerrarSesionLocal();
+  return inject(Router).createUrlTree(['/login']);
 };
 
 export const gestorGuard: CanActivateFn = () => {

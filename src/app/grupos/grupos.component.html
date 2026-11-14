@@ -8,11 +8,11 @@
 
 @if (auth.esGestor()) {
   <div class="card bloque-form">
-    <h2>Nuevo grupo</h2>
+    <h2>{{ editandoId === null ? 'Nuevo grupo' : 'Editar grupo' }}</h2>
     <div class="form-grid">
       <div class="field">
         <label>Materia</label>
-        <select [(ngModel)]="materiaId">
+        <select [(ngModel)]="materiaId" [disabled]="editandoId !== null">
           <option [ngValue]="null" disabled>Selecciona una materia</option>
           @for (m of materias(); track m.id) {
             <option [ngValue]="m.id">{{ m.nombre }}</option>
@@ -33,11 +33,14 @@
       <div class="alert alert-error">{{ error() }}</div>
     }
     @if (exito()) {
-      <div class="alert alert-ok">Grupo creado correctamente.</div>
+      <div class="alert alert-ok">{{ exito() }}</div>
     }
 
     <div class="acciones">
-      <button class="btn btn-primary" type="button" (click)="crear()">Crear grupo</button>
+      <button class="btn btn-primary" type="button" (click)="guardar()">{{ editandoId === null ? 'Crear grupo' : 'Guardar cambios' }}</button>
+      @if (editandoId !== null) {
+        <button class="btn btn-outline" type="button" (click)="cancelar()">Cancelar</button>
+      }
     </div>
   </div>
 }
@@ -72,7 +75,10 @@
                 <span class="badge" [class.badge-si]="f.sesiones >= f.maxSesiones">{{ f.sesiones }} / {{ f.maxSesiones }}</span>
               </td>
               @if (auth.esGestor()) {
-                <td><button class="btn btn-danger btn-sm" type="button" (click)="eliminar(f.grupo.id)">Eliminar</button></td>
+                <td class="acciones-fila">
+                  <button class="btn btn-outline btn-sm" type="button" (click)="editar(f.grupo)">Editar</button>
+                  <button class="btn btn-danger btn-sm" type="button" (click)="eliminar(f.grupo.id)">Eliminar</button>
+                </td>
               }
             </tr>
           }
