@@ -1,0 +1,120 @@
+<div class="page-head">
+  <div>
+    <h1>Horario semanal</h1>
+    <p>
+      @if (auth.esGestor()) {
+        Haz clic en una celda vacía para asignar una sesión en ese espacio.
+      } @else {
+        Consulta las sesiones programadas de la semana.
+      }
+    </p>
+  </div>
+  @if (auth.esGestor()) {
+    <a class="btn btn-primary" routerLink="/horario/asignar">+ Asignar sesión</a>
+  }
+</div>
+
+@if (aviso) {
+  <div class="alert alert-error">El back no tiene endpoint de sesiones: lo que asignes aquí se guarda solo en este navegador y no lo ven otros usuarios.</div>
+}
+
+@if (auth.esGestor() && fueraDeHorario().length) {
+  <div class="alert alert-error">
+    <strong>{{ fueraDeHorario().length }} sesión(es) quedaron fuera del horario configurado</strong>
+    (marcadas con borde rojo). Muévelas o elimínalas antes de publicar el horario.
+  </div>
+}
+
+<div class="card calendario-wrap">
+  <div class="calendario" [style.grid-template-rows]="'44px repeat(' + horas().length + ', 58px)'">
+    @for (d of dias; track d) {
+      <div class="cab" [style.grid-row]="1" [style.grid-column]="col(d)">{{ d }}</div>
+    }
+
+    @for (h of horas(); track h) {
+      <div class="hora" [style.grid-row]="fila(h)" [style.grid-column]="1">{{ fmt(h) }}</div>
+      @for (d of dias; track d) {
+        <button
+          class="celda"
+          type="button"
+          [disabled]="!auth.esGestor()"
+          [style.grid-row]="fila(h)"
+          [style.grid-column]="col(d)"
+          (click)="asignarEn(d, h)"
+        ></button>
+      }
+    }
+
+    @for (b of bloques(); track b.clase.id) {
+      <div
+        class="bloque"
+        [class.compacto]="b.carriles > 1"
+        [class.fuera]="!dentro(b.clase)"
+        [attr.title]="titulo(b.clase)"
+        [style.grid-column]="col(b.clase.dia)"
+        [style.grid-row]="fila(b.clase.horaInicio) + ' / ' + fila(b.clase.horaFin)"
+        [style.width]="'calc(' + (100 / b.carriles) + '% - 6px)'"
+        [style.margin-left]="'calc(' + (100 * b.carril / b.carriles) + '% + 3px)'"
+        [style.background]="b.clase.color"
+        (click)="seleccionada.set(b.clase)"
+      >
+        <strong>{{ b.clase.materia }}</strong>
+        <span>Grupo {{ b.clase.grupo }}</span>
+        <span>{{ fmt(b.clase.horaInicio) }} - {{ fmt(b.clase.horaFin) }}</span>
+        @if (!dentro(b.clase)) {
+          <span class="etiqueta-fuera">Fuera de horario</span>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@if (seleccionada(); as c) {
+  <div class="modal-fondo" (click)="cerrar()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2><span class="dot" [style.background]="c.color"></span>{{ c.materia }}</h2>
+      <p>Grupo {{ c.grupo }}</p>
+      <p>{{ c.dia }} · {{ fmt(c.horaInicio) }} - {{ fmt(c.horaFin) }}</p>
+
+      @if (moviendo()) {
+        <div class="form-grid">
+          <div class="field">
+            <label>Día</label>
+            <select [ngModel]="nuevoDia" (ngModelChange)="cambiarDia($event)">
+              @for (d of dias; track d) {
+                <option [ngValue]="d">{{ d }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Hora de inicio</label>
+            <select [(ngModel)]="nuevaHora">
+              @for (h of horasDisponibles(); track h) {
+                <option [ngValue]="h">{{ fmt(h) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <p>Termina a las {{ fmt(nuevaHora + 2) }}.</p>
+        @if (errorMover()) {
+          <div class="alert alert-error">{{ errorMover() }}</div>
+        }
+      }
+
+      <div class="modal-acciones">
+        @if (auth.esGestor()) {
+          @if (moviendo()) {
+            <button class="btn btn-primary" type="button" (click)="guardarMovimiento(c)">Guardar</button>
+            <button class="btn btn-outline" type="button" (click)="moviendo.set(false)">Cancelar</button>
+          } @else {
+            <button class="btn btn-outline" type="button" (click)="iniciarMovimiento(c)">Mover</button>
+            <button class="btn btn-danger" type="button" (click)="eliminar(c)">Eliminar</button>
+          }
+        }
+        @if (!moviendo()) {
+          <button class="btn btn-outline" type="button" (click)="cerrar()">Cerrar</button>
+        }
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,26 @@
+.login-fondo {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 60%, #314a8f 100%);
+}
+
+.login-tarjeta {
+  width: 100%;
+  max-width: 410px;
+  background: var(--white);
+  border-radius: 18px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.login-marca { text-align: center; margin-bottom: 8px; }
+.login-marca h1 { font-size: 1.35rem; margin-top: 10px; }
+.logo { display: inline-block; font-size: 2rem; background: var(--orange); border-radius: 14px; padding: 8px 14px; }
+.entrar { margin-top: 6px; padding: 13px; }
+.ayuda { font-size: 0.8rem; text-align: center; line-height: 1.4; }

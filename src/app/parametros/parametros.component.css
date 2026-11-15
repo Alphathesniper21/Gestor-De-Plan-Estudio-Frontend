@@ -1,0 +1,4 @@
+.sin-margen { margin-top: 0; margin-bottom: 16px; }
+.tabla td { white-space: normal; vertical-align: middle; }
+.tabla td:nth-child(2) { min-width: 180px; }
+.resumen { margin-top: 16px; }

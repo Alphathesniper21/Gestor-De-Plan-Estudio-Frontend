@@ -1,0 +1,91 @@
+<div class="page-head">
+  <div>
+    <h1>Usuarios</h1>
+    <p>Cuentas con acceso al sistema y su rol.</p>
+  </div>
+  <button class="btn btn-outline" type="button" (click)="recargar()">↻ Actualizar</button>
+</div>
+
+<div class="card bloque-form">
+  <h2>{{ editandoId === null ? 'Nuevo usuario' : 'Editar usuario' }}</h2>
+  <div class="form-grid">
+    <div class="field">
+      <label>Nombre</label>
+      <input type="text" [(ngModel)]="nombre" />
+    </div>
+    <div class="field">
+      <label>Correo</label>
+      <input type="email" [(ngModel)]="correo" />
+    </div>
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" [(ngModel)]="username" [disabled]="editandoId !== null" />
+      <small class="pista">Mínimo 4 caracteres: letras, números, punto, guion o guion bajo.</small>
+    </div>
+    <div class="field">
+      <label>{{ editandoId === null ? 'Contraseña' : 'Nueva contraseña (opcional)' }}</label>
+      <input type="password" [(ngModel)]="password" [placeholder]="editandoId === null ? '' : 'Déjala vacía para conservar la actual'" />
+      <small class="pista">Mínimo 8 caracteres, con mayúscula, minúscula y número.</small>
+    </div>
+    <div class="field">
+      <label>Rol</label>
+      <select [(ngModel)]="rol" [disabled]="editandoMiCuenta">
+        <option value="GESTOR">GESTOR</option>
+        <option value="CONSULTANTE">CONSULTANTE</option>
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-error">{{ error() }}</div>
+  }
+  @if (exito()) {
+    <div class="alert alert-ok">{{ exito() }}</div>
+  }
+
+  <div class="acciones">
+    <button class="btn btn-primary" type="button" (click)="guardar()">{{ editandoId === null ? 'Crear usuario' : 'Guardar cambios' }}</button>
+    @if (editandoId !== null) {
+      <button class="btn btn-outline" type="button" (click)="cancelar()">Cancelar</button>
+    }
+  </div>
+</div>
+
+<div class="card">
+  @if (errorApi()) {
+    <div class="alert alert-error sin-margen-arriba">{{ errorApi() }}</div>
+  }
+  @if (cargando()) {
+    <div class="vacio">Cargando...</div>
+  } @else if (usuarios().length) {
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of usuarios(); track u.id) {
+            <tr>
+              <td>{{ u.nombre }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.correo }}</td>
+              <td><span class="badge" [class.badge-si]="u.rol === 'GESTOR'">{{ u.rol }}</span></td>
+              <td class="acciones-fila">
+                <button class="btn btn-outline btn-sm" type="button" (click)="editar(u)">Editar</button>
+                <button class="btn btn-danger btn-sm" type="button" [disabled]="u.username === auth.usuario()" (click)="eliminar(u.id)">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="vacio">No hay usuarios para mostrar.</div>
+  }
+</div>

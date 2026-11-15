@@ -1,0 +1,69 @@
+<div class="page-head">
+  <div>
+    <h1>Parámetros</h1>
+    <p>Reglas del horario. Los cambios se aplican en la siguiente validación, sin reiniciar el sistema.</p>
+  </div>
+  <button class="btn btn-outline" type="button" (click)="recargar()">↻ Actualizar</button>
+</div>
+
+<div class="card">
+  @if (errorApi()) {
+    <div class="alert alert-error sin-margen">{{ errorApi() }}</div>
+  }
+  @if (error()) {
+    <div class="alert alert-error sin-margen">{{ error() }}</div>
+  }
+  @if (exito()) {
+    <div class="alert alert-ok sin-margen">{{ exito() }}</div>
+  }
+
+  @if (fueraDeHorario().length) {
+    <div class="alert alert-error sin-margen">
+      Con la configuración actual hay <strong>{{ fueraDeHorario().length }}</strong> sesión(es) fuera del horario
+      (marcadas en rojo en el horario semanal). El horario no se podrá publicar hasta que las muevas o las elimines.
+      <a routerLink="/horario">Ir al horario semanal</a>
+    </div>
+  }
+
+  @if (cargando()) {
+    <div class="vacio">Cargando...</div>
+  } @else {
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Parámetro</th>
+            <th>Valor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.clave) {
+            <tr>
+              <td>
+                <strong>{{ f.meta.etiqueta }}</strong>
+                <small class="pista">{{ f.meta.ayuda }}</small>
+              </td>
+              <td>
+                <div class="field">
+                  <input
+                    [type]="f.meta.tipo"
+                    [attr.min]="f.meta.min ?? null"
+                    [attr.max]="f.meta.max ?? null"
+                    [attr.step]="f.meta.step ?? null"
+                    [ngModel]="valorDe(f)"
+                    (ngModelChange)="cambiar(f.clave, $event)"
+                  />
+                </div>
+              </td>
+              <td>
+                <button class="btn btn-primary btn-sm" type="button" [disabled]="!modificado(f) || guardando()" (click)="guardar(f)">Guardar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="pista resumen">Cupo máximo por grupo con la configuración actual: <strong>{{ cupoMaximo() }}</strong>.</p>
+  }
+</div>

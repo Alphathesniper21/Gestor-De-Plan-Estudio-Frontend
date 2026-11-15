@@ -1,0 +1,121 @@
+<div class="page-head">
+  <div>
+    <h1>Bienvenido, {{ auth.usuario() }} 👋</h1>
+    <p>Resumen del horario académico de la semana.</p>
+  </div>
+  @if (auth.esGestor()) {
+    <a class="btn btn-primary" routerLink="/horario/asignar">+ Asignar sesión</a>
+  }
+</div>
+
+<div class="stats">
+  <div class="card stat">
+    <span class="stat-icono naranja">📖</span>
+    <div><strong>{{ svc.totalMaterias() }}</strong><small>Materias</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono azul">👥</span>
+    <div><strong>{{ svc.totalGrupos() }}</strong><small>Grupos</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono verde">📅</span>
+    <div><strong>{{ svc.totalSesiones() }}</strong><small>Sesiones semanales</small></div>
+  </div>
+  <div class="card stat">
+    <span class="stat-icono morado">⏱️</span>
+    <div><strong>{{ svc.totalHoras() }} h</strong><small>Horas programadas</small></div>
+  </div>
+</div>
+
+<div class="card estado-horario">
+  <div class="estado-cab">
+    <h2>Estado del horario</h2>
+    <span class="badge" [class.badge-si]="pub.publicado()">{{ pub.publicado() ? 'Publicado' : 'Sin publicar' }}</span>
+  </div>
+
+  @if (pub.pendientes().length) {
+    <p>Faltan sesiones en {{ pub.pendientes().length }} grupo(s):</p>
+    <ul class="lista-pendientes">
+      @for (f of pub.pendientes(); track f.grupo.id) {
+        <li>
+          <strong>{{ f.materia }}</strong> · Grupo {{ f.grupo.numeroGrupo }}
+          <small>{{ f.sesiones }} de {{ f.maxSesiones }} sesiones</small>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p>Todos los grupos tienen sus sesiones completas.</p>
+  }
+
+  @if (auth.esGestor() && pub.fueraDeHorario().length) {
+    <div class="alert alert-error">
+      <strong>Hay {{ pub.fueraDeHorario().length }} sesión(es) fuera del horario configurado.</strong>
+      No se puede publicar hasta que las muevas o las elimines.
+      <ul class="lista-pendientes">
+        @for (c of pub.fueraDeHorario(); track c.id) {
+          <li>
+            <strong>{{ c.materia }}</strong> · Grupo {{ c.grupo }}: {{ c.dia }} {{ svc.formatoHora(c.horaInicio) }}-{{ svc.formatoHora(c.horaFin) }}
+            <small>{{ svc.motivoFueraDeHorario(c) }}</small>
+          </li>
+        }
+      </ul>
+      <a class="btn btn-outline btn-sm" routerLink="/horario">Corregir en el horario</a>
+    </div>
+  }
+
+  @if (pub.error()) {
+    <div class="alert alert-error">{{ pub.error() }}</div>
+  }
+  @if (errorPublicar()) {
+    <div class="alert alert-error">{{ errorPublicar() }}</div>
+  }
+  @if (exitoPublicar() && pub.publicado()) {
+    <div class="alert alert-ok">Horario publicado correctamente.</div>
+  }
+
+  @if (auth.esGestor() && !pub.publicado()) {
+    <div class="acciones">
+      <button class="btn btn-primary" type="button" [disabled]="pub.pendientes().length > 0 || pub.fueraDeHorario().length > 0" (click)="publicar()">Publicar horario</button>
+    </div>
+  }
+</div>
+
+<div class="dos-columnas">
+  <div class="card">
+    <h2>Clases de hoy{{ hoy ? ' · ' + hoy : '' }}</h2>
+    @for (c of clasesHoy(); track c.id) {
+      <div class="item-hoy" [style.border-left-color]="c.color">
+        <div>
+          <strong>{{ c.materia }}</strong>
+          <small>Grupo {{ c.grupo }}</small>
+        </div>
+        <span class="hora">{{ svc.formatoHora(c.horaInicio) }} - {{ svc.formatoHora(c.horaFin) }}</span>
+      </div>
+    } @empty {
+      <div class="vacio">No tienes clases programadas para hoy.</div>
+    }
+  </div>
+
+  <div class="card">
+    <h2>Accesos rápidos</h2>
+    <div class="accesos">
+      <a class="btn btn-outline" routerLink="/horario">📅 Ver el horario</a>
+      <a class="btn btn-outline" routerLink="/materias">📖 Materias</a>
+      <a class="btn btn-outline" routerLink="/grupos">👥 Grupos</a>
+      @if (auth.esGestor()) {
+        <a class="btn btn-outline" routerLink="/horario/asignar">➕ Asignar una sesión</a>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="card por-dia">
+  <h2>Sesiones por día</h2>
+  @for (d of svc.porDia(); track d.dia) {
+    <div class="barra-fila">
+      <span>{{ d.dia }}</span>
+      <div class="barra"><div class="relleno" [style.width.%]="ancho(d.sesiones)"></div></div>
+      <strong>{{ d.sesiones }}</strong>
+    </div>
+  }
+</div>
