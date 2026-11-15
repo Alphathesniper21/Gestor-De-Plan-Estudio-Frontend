@@ -1,6 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { HorarioService } from '../services/horario.service';
+import { PublicacionService } from '../services/publicacion.service';
 import { Dia } from '../models/horario.model';
 
 @Component({
@@ -12,10 +13,24 @@ import { Dia } from '../models/horario.model';
 export class DashboardComponent {
   svc = inject(HorarioService);
   auth = inject(AuthService);
+  pub = inject(PublicacionService);
+
+  errorPublicar = signal('');
+  exitoPublicar = signal(false);
 
   private nombresDia: (Dia | null)[] = [null, 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   hoy = this.nombresDia[new Date().getDay()];
+
+  constructor() {
+    this.pub.cargar();
+  }
+
+  async publicar(): Promise<void> {
+    const resultado = await this.pub.publicar();
+    this.errorPublicar.set(resultado ?? '');
+    this.exitoPublicar.set(!resultado);
+  }
 
   ancho(cantidad: number): number {
     const max = Math.max(1, ...this.svc.porDia().map(d => d.sesiones));

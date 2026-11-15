@@ -32,6 +32,18 @@ export class AsignarClaseComponent {
     const h = Number(params.get('hora'));
     if (d && this.dias.includes(d)) this.dia = d;
     if (h) this.horaInicio = h;
+    this.ajustarHora();
+  }
+
+  cambiarDia(dia: Dia): void {
+    this.dia = dia;
+    this.ajustarHora();
+  }
+
+  /** Si la hora elegida no es válida para el día, usa la primera que sí lo sea. */
+  private ajustarHora(): void {
+    const validas = this.horasDisponibles();
+    if (validas.length && !validas.includes(this.horaInicio)) this.horaInicio = validas[0];
   }
 
   get horaFin(): number {

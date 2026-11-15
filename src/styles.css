@@ -176,3 +176,5 @@ p { margin: 4px 0 0; color: var(--muted); }
 .acciones-fila { display: flex; gap: 8px; }
 
 .sin-margen-arriba { margin: 0 0 14px; }
+
+.pista { display: block; font-size: 0.8rem; font-weight: 400; color: var(--muted); }

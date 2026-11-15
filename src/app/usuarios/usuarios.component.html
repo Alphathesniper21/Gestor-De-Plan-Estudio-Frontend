@@ -20,10 +20,12 @@
     <div class="field">
       <label>Usuario</label>
       <input type="text" [(ngModel)]="username" [disabled]="editandoId !== null" />
+      <small class="pista">Mínimo 4 caracteres: letras, números, punto, guion o guion bajo.</small>
     </div>
     <div class="field">
       <label>{{ editandoId === null ? 'Contraseña' : 'Nueva contraseña (opcional)' }}</label>
       <input type="password" [(ngModel)]="password" [placeholder]="editandoId === null ? '' : 'Déjala vacía para conservar la actual'" />
+      <small class="pista">Mínimo 8 caracteres, con mayúscula, minúscula y número.</small>
     </div>
     <div class="field">
       <label>Rol</label>

@@ -15,6 +15,7 @@ import { AsignarClaseComponent } from './asignar-clase/asignar-clase.component';
 import { MateriasComponent } from './materias/materias.component';
 import { GruposComponent } from './grupos/grupos.component';
 import { UsuariosComponent } from './usuarios/usuarios.component';
+import { ParametrosComponent } from './parametros/parametros.component';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { UsuariosComponent } from './usuarios/usuarios.component';
     AsignarClaseComponent,
     MateriasComponent,
     GruposComponent,
-    UsuariosComponent
+    UsuariosComponent,
+    ParametrosComponent
   ],
   imports: [
     BrowserModule,

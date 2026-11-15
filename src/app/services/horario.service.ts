@@ -1,26 +1,37 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { mensajeHttp } from './http-error';
 import { GrupoDTO } from '../models/grupo.dto';
 import { MateriaDTO, NuevaMateria } from '../models/materia.dto';
 import { SesionDTO } from '../models/sesion.dto';
 import { ClaseHorario, Dia, NuevaSesion } from '../models/horario.model';
 import { GRUPOS_MOCK, MATERIAS_MOCK, SESIONES_MOCK } from '../mock/horario.mock';
 import { DatosForm, formulario } from './http-form';
+import { ParametroService } from './parametro.service';
 
-const CUPO_MAXIMO = 44;
 const LOCAL_KEY = 'sesiones-local';
-const MSG_GRUPOS = 'El back exige rol ADMIN para crear o eliminar grupos, pero ese rol ya no existe. Pendiente de ajustar en el back.';
 
 @Injectable({ providedIn: 'root' })
 export class HorarioService {
   private http = inject(HttpClient);
+  private params = inject(ParametroService);
   private readonly api = environment.apiUrl;
 
   readonly dias: Dia[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  readonly horasGrilla = Array.from({ length: 15 }, (_, i) => i + 7);
-  readonly cupoMaximo = CUPO_MAXIMO;
+  /** Filas del calendario: la jornada configurada, ampliada si hay sesiones que quedaron fuera de ella. */
+  readonly horasGrilla = computed(() => {
+    const r = this.params.reglas();
+    let desde = Math.floor(r.inicioJornada / 60);
+    let hasta = Math.ceil(Math.max(r.finSemana, r.finSabado) / 60);
+    for (const c of this.clases()) {
+      desde = Math.min(desde, c.horaInicio);
+      hasta = Math.max(hasta, c.horaFin);
+    }
+    return Array.from({ length: Math.max(1, hasta - desde) }, (_, i) => desde + i);
+  });
+  readonly cupoMaximo = this.params.cupoMaximo;
   readonly avisoSesiones = !environment.usarMock && !environment.sesionesEnBack;
 
   readonly materias = signal<MateriaDTO[]>(environment.usarMock ? MATERIAS_MOCK : []);
@@ -38,6 +49,8 @@ export class HorarioService {
       return clase ? [clase] : [];
     })
   );
+  /** Sesiones que no cumplen la jornada y la pausa vigentes (p. ej. después de cambiar un parámetro). */
+  readonly clasesFueraDeHorario = computed(() => this.clases().filter(c => !this.dentroDeHorario(c)));
   readonly totalMaterias = computed(() => this.materias().length);
   readonly totalGrupos = computed(() => this.grupos().length);
   readonly totalSesiones = computed(() => this.clases().length);
@@ -85,15 +98,43 @@ export class HorarioService {
     return this.grupos().find(g => g.id === grupoId)?.materiaId ?? 0;
   }
 
+  /** La sesión cabe en la jornada del día y no cruza la pausa del mediodía. */
+  dentroDeHorario(c: ClaseHorario): boolean {
+    const r = this.params.reglas();
+    const cierre = c.dia === 'Sábado' ? r.finSabado : r.finSemana;
+    const inicio = c.horaInicio * 60;
+    const fin = c.horaFin * 60;
+    return inicio >= r.inicioJornada && fin <= cierre && !(inicio < r.pausaFin && r.pausaInicio < fin);
+  }
+
+  motivoFueraDeHorario(c: ClaseHorario): string {
+    const r = this.params.reglas();
+    const cierre = c.dia === 'Sábado' ? r.finSabado : r.finSemana;
+    if (c.horaInicio * 60 < r.inicioJornada) return `empieza antes de la apertura (${this.hhmm(r.inicioJornada)})`;
+    if (c.horaFin * 60 > cierre) return `termina después del cierre (${this.hhmm(cierre)})`;
+    return `cruza la pausa del mediodía (${this.hhmm(r.pausaInicio)}-${this.hhmm(r.pausaFin)})`;
+  }
+
+  /** Horas de inicio posibles: sesión de 2 h dentro de la jornada y fuera de la pausa. */
   horasValidas(dia: Dia): number[] {
-    if (dia === 'Sábado') return [7, 8, 9, 10];
-    return [7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20];
+    const r = this.params.reglas();
+    const cierre = dia === 'Sábado' ? r.finSabado : r.finSemana;
+    return this.horasGrilla().filter(h => {
+      const inicio = h * 60;
+      const fin = inicio + 120;
+      return inicio >= r.inicioJornada && fin <= cierre && !(inicio < r.pausaFin && r.pausaInicio < fin);
+    });
   }
 
   async crearMateria(m: NuevaMateria): Promise<string | null> {
+    if (!Number.isInteger(m.codigo) || m.codigo < 1) return 'Ingresa el código de la materia.';
     if (!m.nombre.trim()) return 'Ingresa el nombre de la materia.';
-    if (m.semestre < 1 || m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa semestre, créditos y horas.';
+    if (m.semestre < 1 || m.semestre > 9) return 'El semestre debe estar entre 1 y 9.';
+    if (m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa créditos y horas.';
     if (m.horasDeLaMateria % 2 !== 0) return 'Las horas deben ser pares: cada sesión dura 2 horas.';
+    const maxSesiones = this.params.reglas().sesionesMaximas;
+    if (m.horasDeLaMateria / 2 > maxSesiones) return `La materia tendría ${m.horasDeLaMateria / 2} sesiones semanales y el máximo es ${maxSesiones}.`;
+    if (this.materias().some(x => x.codigo === m.codigo)) return 'Ya existe una materia con ese código.';
     if (!environment.usarMock) {
       const error = await this.llamar('POST', '/materia/crear', { ...m });
       if (error) return error;
@@ -105,12 +146,31 @@ export class HorarioService {
   }
 
   async actualizarMateria(m: MateriaDTO): Promise<string | null> {
+    if (!Number.isInteger(m.codigo) || m.codigo < 1) return 'Ingresa el código de la materia.';
     if (!m.nombre.trim()) return 'Ingresa el nombre de la materia.';
-    if (m.semestre < 1 || m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa semestre, créditos y horas.';
+    if (m.semestre < 1 || m.semestre > 9) return 'El semestre debe estar entre 1 y 9.';
+    if (m.ncreditos < 1 || m.horasDeLaMateria < 2) return 'Revisa créditos y horas.';
     if (m.horasDeLaMateria % 2 !== 0) return 'Las horas deben ser pares: cada sesión dura 2 horas.';
+    const maxSesiones = this.params.reglas().sesionesMaximas;
+    if (m.horasDeLaMateria / 2 > maxSesiones) return `La materia tendría ${m.horasDeLaMateria / 2} sesiones semanales y el máximo es ${maxSesiones}.`;
+    if (this.materias().some(x => x.id !== m.id && x.codigo === m.codigo)) return 'Ya existe una materia con ese código.';
+
+    const original = this.materias().find(x => x.id === m.id);
+    const sesionesDe = (g: GrupoDTO) => this.sesiones().filter(s => s.grupoId === g.id).length;
+    const grupos = this.grupos().filter(g => g.materiaId === m.id);
+    if (original && original.semestre !== m.semestre && grupos.some(g => sesionesDe(g) > 0)) {
+      return 'No se puede cambiar el semestre: el curso ya tiene sesiones asignadas.';
+    }
+    const nuevasSesiones = m.horasDeLaMateria / 2;
+    const excedido = grupos.find(g => sesionesDe(g) > nuevasSesiones);
+    if (excedido) {
+      return `El grupo ${excedido.numeroGrupo} ya tiene ${sesionesDe(excedido)} sesiones asignadas y el curso solo tendría ${nuevasSesiones}. Quita sesiones antes de reducir las horas.`;
+    }
+
     if (!environment.usarMock) {
       const error = await this.llamar('PUT', '/materia/actualizar', {
         id: m.id,
+        codigo: m.codigo,
         nombre: m.nombre,
         semestre: m.semestre,
         ncreditos: m.ncreditos,
@@ -139,12 +199,12 @@ export class HorarioService {
     if (materiaId === null) return 'Selecciona la materia.';
     if (numeroGrupo === null || numeroGrupo < 1) return 'Ingresa el número de grupo.';
     if (cupoPlaneado === null || cupoPlaneado < 1) return 'Ingresa el cupo planeado.';
-    if (cupoPlaneado > CUPO_MAXIMO) return `El cupo máximo permitido es ${CUPO_MAXIMO}.`;
+    if (environment.usarMock && cupoPlaneado > this.cupoMaximo()) return `El cupo máximo permitido es ${this.cupoMaximo()}.`;
     if (this.grupos().some(g => g.materiaId === materiaId && g.numeroGrupo === numeroGrupo)) {
       return 'La materia ya tiene ese número de grupo.';
     }
     if (!environment.usarMock) {
-      const error = await this.llamar('POST', '/grupo/crear', { materiaId, numeroGrupo, cupoPlaneado }, MSG_GRUPOS);
+      const error = await this.llamar('POST', '/grupo/crear', { materiaId, numeroGrupo, cupoPlaneado });
       if (error) return error;
       this.cargarGrupos();
       return null;
@@ -158,12 +218,12 @@ export class HorarioService {
     if (!grupo) return 'El grupo no existe.';
     if (numeroGrupo === null || numeroGrupo < 1) return 'Ingresa el número de grupo.';
     if (cupoPlaneado === null || cupoPlaneado < 1) return 'Ingresa el cupo planeado.';
-    if (cupoPlaneado > CUPO_MAXIMO) return `El cupo máximo permitido es ${CUPO_MAXIMO}.`;
+    if (environment.usarMock && cupoPlaneado > this.cupoMaximo()) return `El cupo máximo permitido es ${this.cupoMaximo()}.`;
     if (this.grupos().some(g => g.id !== id && g.materiaId === grupo.materiaId && g.numeroGrupo === numeroGrupo)) {
       return 'La materia ya tiene ese número de grupo.';
     }
     if (!environment.usarMock) {
-      const error = await this.llamar('PUT', '/grupo/actualizar', { id, numeroGrupo, cupoPlaneado }, MSG_GRUPOS);
+      const error = await this.llamar('PUT', '/grupo/actualizar', { id, numeroGrupo, cupoPlaneado });
       if (error) return error;
       this.cargarGrupos();
       return null;
@@ -174,7 +234,7 @@ export class HorarioService {
 
   async eliminarGrupo(id: number): Promise<string | null> {
     if (!environment.usarMock) {
-      const error = await this.llamar('DELETE', `/grupo/eliminar/${id}`, {}, MSG_GRUPOS);
+      const error = await this.llamar('DELETE', `/grupo/eliminar/${id}`);
       if (error) return error;
     }
     this.grupos.update(l => l.filter(g => g.id !== id));
@@ -186,38 +246,69 @@ export class HorarioService {
     if (d.grupoId === null) return 'Selecciona el grupo.';
     const grupo = this.grupos().find(g => g.id === d.grupoId);
     if (!grupo) return 'El grupo no existe.';
-    if (!this.horasValidas(d.dia).includes(d.horaInicio)) {
-      return 'Cada sesión dura 2 horas, entre 07:00 y 22:00 (sábado hasta las 13:00) y sin cruzar 12:00-13:00.';
-    }
     const horaFin = d.horaInicio + 2;
     const diaNumero = this.dias.indexOf(d.dia) + 1;
-    const propias = this.sesiones().filter(s => s.grupoId === grupo.id);
-    const max = this.maxSesiones(grupo);
-    if (propias.length >= max) return `El grupo ya tiene sus ${max} sesiones semanales.`;
-    const cruce = propias.some(
-      s => s.diaSemana === diaNumero && d.horaInicio < this.hora(s.horaFin) && horaFin > this.hora(s.horaInicio)
-    );
-    if (cruce) return 'El grupo ya tiene una sesión que se cruza en ese horario.';
 
-    const sesion: SesionDTO = {
-      id: this.siguienteId(this.sesiones()),
-      grupoId: grupo.id,
-      diaSemana: diaNumero,
-      horaInicio: `${this.formatoHora(d.horaInicio)}:00`,
-      horaFin: `${this.formatoHora(horaFin)}:00`
-    };
+    // Con el back disponible, él valida franja, pausa, máximo de sesiones y cruces
+    // (los parámetros son configurables) y responde con el mensaje de la regla.
     if (!environment.usarMock && environment.sesionesEnBack) {
       const error = await this.llamar('POST', '/sesion/crear', {
-        grupoId: sesion.grupoId,
-        diaSemana: sesion.diaSemana,
-        horaInicio: String(sesion.horaInicio),
-        horaFin: String(sesion.horaFin)
+        grupoId: grupo.id,
+        diaSemana: diaNumero,
+        horaInicio: this.formatoHora(d.horaInicio),
+        horaFin: this.formatoHora(horaFin)
       });
       if (error) return error;
       this.cargarSesiones();
       return null;
     }
-    this.sesiones.update(l => [...l, sesion]);
+
+    const invalido = this.validarLocal(grupo, d.dia, d.horaInicio, null);
+    if (invalido) return invalido;
+
+    this.sesiones.update(l => [
+      ...l,
+      {
+        id: this.siguienteId(l),
+        grupoId: grupo.id,
+        diaSemana: diaNumero,
+        horaInicio: `${this.formatoHora(d.horaInicio)}:00`,
+        horaFin: `${this.formatoHora(horaFin)}:00`
+      }
+    ]);
+    this.guardarLocal();
+    return null;
+  }
+
+  async moverSesion(id: number, dia: Dia, horaInicio: number): Promise<string | null> {
+    const sesion = this.sesiones().find(s => s.id === id);
+    if (!sesion) return 'La sesión no existe.';
+    const grupo = this.grupos().find(g => g.id === sesion.grupoId);
+    if (!grupo) return 'El grupo no existe.';
+    const horaFin = horaInicio + 2;
+    const diaNumero = this.dias.indexOf(dia) + 1;
+
+    if (!environment.usarMock && environment.sesionesEnBack) {
+      const error = await this.llamar('PUT', '/sesion/actualizar', {
+        id,
+        diaSemana: diaNumero,
+        horaInicio: this.formatoHora(horaInicio),
+        horaFin: this.formatoHora(horaFin)
+      });
+      if (error) return error;
+      this.cargarSesiones();
+      return null;
+    }
+
+    const invalido = this.validarLocal(grupo, dia, horaInicio, id);
+    if (invalido) return invalido;
+    this.sesiones.update(l =>
+      l.map(s =>
+        s.id === id
+          ? { ...s, diaSemana: diaNumero, horaInicio: `${this.formatoHora(horaInicio)}:00`, horaFin: `${this.formatoHora(horaFin)}:00` }
+          : s
+      )
+    );
     this.guardarLocal();
     return null;
   }
@@ -253,13 +344,12 @@ export class HorarioService {
     }).add(() => this.terminar());
   }
 
-  private async llamar(metodo: 'POST' | 'PUT' | 'DELETE', ruta: string, datos: DatosForm = {}, mensaje403 = ''): Promise<string | null> {
+  private async llamar(metodo: 'POST' | 'PUT' | 'DELETE', ruta: string, datos: DatosForm = {}): Promise<string | null> {
     const body = metodo === 'DELETE' ? null : formulario(datos);
     try {
       await firstValueFrom(this.http.request(metodo, `${this.api}${ruta}`, { body, responseType: 'text' }));
       return null;
     } catch (e) {
-      if (mensaje403 && (e as HttpErrorResponse).status === 403) return mensaje403;
       return this.mensajeError(e);
     }
   }
@@ -282,6 +372,32 @@ export class HorarioService {
     } catch {
       return [];
     }
+  }
+
+  /** Reglas de horario aplicadas en el cliente (modo mock o sin endpoint de sesiones). */
+  private validarLocal(grupo: GrupoDTO, dia: Dia, horaInicio: number, ignorarId: number | null): string | null {
+    if (!this.horasValidas(dia).includes(horaInicio)) return this.mensajeFranja();
+    const horaFin = horaInicio + 2;
+    const diaNumero = this.dias.indexOf(dia) + 1;
+    const propias = this.sesiones().filter(s => s.grupoId === grupo.id && s.id !== ignorarId);
+    const max = this.maxSesiones(grupo);
+    if (propias.length >= max) return `El grupo ya tiene sus ${max} sesiones semanales.`;
+    const cruce = propias.some(
+      s => s.diaSemana === diaNumero && horaInicio < this.hora(s.horaFin) && horaFin > this.hora(s.horaInicio)
+    );
+    return cruce ? 'El grupo ya tiene una sesión que se cruza en ese horario.' : null;
+  }
+
+  private mensajeFranja(): string {
+    const r = this.params.reglas();
+    return (
+      `Cada sesión dura 2 horas, entre ${this.hhmm(r.inicioJornada)} y ${this.hhmm(r.finSemana)} ` +
+      `(sábado hasta las ${this.hhmm(r.finSabado)}) y sin cruzar ${this.hhmm(r.pausaInicio)}-${this.hhmm(r.pausaFin)}.`
+    );
+  }
+
+  private hhmm(minutos: number): string {
+    return `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
   }
 
   private maxSesiones(g: GrupoDTO): number {
@@ -318,10 +434,6 @@ export class HorarioService {
   }
 
   private mensajeError(e: unknown): string {
-    const err = e as HttpErrorResponse;
-    if (typeof err.error === 'string' && err.error) return err.error;
-    if (err.status === 403) return 'Tu rol no tiene permiso para esta acción.';
-    if (err.status === 401) return 'Tu sesión expiró. Inicia sesión de nuevo.';
-    return 'No se pudo conectar con el servidor.';
+    return mensajeHttp(e);
   }
 }

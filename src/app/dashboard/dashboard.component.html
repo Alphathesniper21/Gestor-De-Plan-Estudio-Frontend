@@ -27,6 +27,59 @@
   </div>
 </div>
 
+<div class="card estado-horario">
+  <div class="estado-cab">
+    <h2>Estado del horario</h2>
+    <span class="badge" [class.badge-si]="pub.publicado()">{{ pub.publicado() ? 'Publicado' : 'Sin publicar' }}</span>
+  </div>
+
+  @if (pub.pendientes().length) {
+    <p>Faltan sesiones en {{ pub.pendientes().length }} grupo(s):</p>
+    <ul class="lista-pendientes">
+      @for (f of pub.pendientes(); track f.grupo.id) {
+        <li>
+          <strong>{{ f.materia }}</strong> · Grupo {{ f.grupo.numeroGrupo }}
+          <small>{{ f.sesiones }} de {{ f.maxSesiones }} sesiones</small>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p>Todos los grupos tienen sus sesiones completas.</p>
+  }
+
+  @if (auth.esGestor() && pub.fueraDeHorario().length) {
+    <div class="alert alert-error">
+      <strong>Hay {{ pub.fueraDeHorario().length }} sesión(es) fuera del horario configurado.</strong>
+      No se puede publicar hasta que las muevas o las elimines.
+      <ul class="lista-pendientes">
+        @for (c of pub.fueraDeHorario(); track c.id) {
+          <li>
+            <strong>{{ c.materia }}</strong> · Grupo {{ c.grupo }}: {{ c.dia }} {{ svc.formatoHora(c.horaInicio) }}-{{ svc.formatoHora(c.horaFin) }}
+            <small>{{ svc.motivoFueraDeHorario(c) }}</small>
+          </li>
+        }
+      </ul>
+      <a class="btn btn-outline btn-sm" routerLink="/horario">Corregir en el horario</a>
+    </div>
+  }
+
+  @if (pub.error()) {
+    <div class="alert alert-error">{{ pub.error() }}</div>
+  }
+  @if (errorPublicar()) {
+    <div class="alert alert-error">{{ errorPublicar() }}</div>
+  }
+  @if (exitoPublicar() && pub.publicado()) {
+    <div class="alert alert-ok">Horario publicado correctamente.</div>
+  }
+
+  @if (auth.esGestor() && !pub.publicado()) {
+    <div class="acciones">
+      <button class="btn btn-primary" type="button" [disabled]="pub.pendientes().length > 0 || pub.fueraDeHorario().length > 0" (click)="publicar()">Publicar horario</button>
+    </div>
+  }
+</div>
+
 <div class="dos-columnas">
   <div class="card">
     <h2>Clases de hoy{{ hoy ? ' · ' + hoy : '' }}</h2>

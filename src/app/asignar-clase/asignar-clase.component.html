@@ -6,7 +6,7 @@
 </div>
 
 @if (aviso) {
-  <div class="alert alert-error sin-margen">El back aún no tiene endpoint de sesiones: la sesión se mantiene solo mientras la página esté abierta.</div>
+  <div class="alert alert-error sin-margen">El back no tiene endpoint de sesiones: la sesión se guarda solo en este navegador y no la ven otros usuarios.</div>
 }
 
 <div class="layout">
@@ -29,7 +29,7 @@
 
         <div class="field">
           <label>Día</label>
-          <select [(ngModel)]="dia">
+          <select [ngModel]="dia" (ngModelChange)="cambiarDia($event)">
             @for (d of dias; track d) {
               <option [ngValue]="d">{{ d }}</option>
             }

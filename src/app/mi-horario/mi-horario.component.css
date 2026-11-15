@@ -55,6 +55,29 @@
   transition: transform 0.12s;
 }
 
-.bloque:hover { transform: scale(1.02); }
+.bloque:hover { transform: scale(1.02); z-index: 3; }
 .bloque strong { font-size: 0.88rem; }
 .bloque span { font-size: 0.75rem; opacity: 0.95; }
+
+.bloque { box-sizing: border-box; min-width: 0; }
+
+/* Varias sesiones en el mismo horario: se reparten el ancho del día */
+.bloque.compacto { padding: 5px 6px; }
+.bloque.compacto strong,
+.bloque.compacto span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+/* Sesión que ya no cabe en la jornada configurada */
+.bloque.fuera { outline: 3px dashed #dc2626; outline-offset: -3px; }
+.etiqueta-fuera {
+  width: fit-content;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}

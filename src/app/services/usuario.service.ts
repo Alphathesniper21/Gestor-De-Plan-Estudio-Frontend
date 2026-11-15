@@ -1,7 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { mensajeHttp } from './http-error';
 import { RolUsuario, UsuarioDTO } from '../models/usuario.dto';
 import { DatosForm, formulario } from './http-form';
 
@@ -105,9 +106,6 @@ export class UsuarioService {
   }
 
   private mensajeError(e: unknown): string {
-    const err = e as HttpErrorResponse;
-    if (typeof err.error === 'string' && err.error) return err.error;
-    if (err.status === 403) return 'Tu rol no tiene permiso para esta acción.';
-    return 'No se pudo conectar con el servidor.';
+    return mensajeHttp(e);
   }
 }

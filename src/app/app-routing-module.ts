@@ -9,6 +9,7 @@ import { AsignarClaseComponent } from './asignar-clase/asignar-clase.component';
 import { MateriasComponent } from './materias/materias.component';
 import { GruposComponent } from './grupos/grupos.component';
 import { UsuariosComponent } from './usuarios/usuarios.component';
+import { ParametrosComponent } from './parametros/parametros.component';
 
 const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -23,7 +24,8 @@ const routes: Routes = [
       { path: 'horario/asignar', component: AsignarClaseComponent, canActivate: [gestorGuard] },
       { path: 'materias', component: MateriasComponent },
       { path: 'grupos', component: GruposComponent },
-      { path: 'usuarios', component: UsuariosComponent, canActivate: [gestorGuard] }
+      { path: 'usuarios', component: UsuariosComponent, canActivate: [gestorGuard] },
+      { path: 'parametros', component: ParametrosComponent, canActivate: [gestorGuard] }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }

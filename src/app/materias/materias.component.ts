@@ -18,10 +18,11 @@ export class MateriasComponent {
 
   visibles = computed(() => {
     const f = this.normalizar(this.filtro());
-    return this.materias().filter(m => this.normalizar(m.nombre).includes(f));
+    return this.materias().filter(m => this.normalizar(m.nombre).includes(f) || String(m.codigo).includes(f));
   });
 
   editandoId: number | null = null;
+  codigo: number | null = null;
   nombre = '';
   semestre: number | null = 1;
   ncreditos: number | null = 3;
@@ -41,6 +42,7 @@ export class MateriasComponent {
 
   editar(m: MateriaDTO): void {
     this.editandoId = m.id;
+    this.codigo = m.codigo;
     this.nombre = m.nombre;
     this.semestre = m.semestre;
     this.ncreditos = m.ncreditos;
@@ -52,6 +54,7 @@ export class MateriasComponent {
 
   cancelar(): void {
     this.editandoId = null;
+    this.codigo = null;
     this.nombre = '';
     this.semestre = 1;
     this.ncreditos = 3;
@@ -61,6 +64,7 @@ export class MateriasComponent {
 
   async guardar(): Promise<void> {
     const datos = {
+      codigo: this.codigo ?? 0,
       nombre: this.nombre,
       semestre: this.semestre ?? 0,
       ncreditos: this.ncreditos ?? 0,

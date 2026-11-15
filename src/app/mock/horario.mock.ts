@@ -3,12 +3,12 @@ import { MateriaDTO } from '../models/materia.dto';
 import { SesionDTO } from '../models/sesion.dto';
 
 export const MATERIAS_MOCK: MateriaDTO[] = [
-  { id: 1, nombre: 'Cálculo Diferencial', semestre: 1, ncreditos: 3, horasDeLaMateria: 4, correlativa: false },
-  { id: 2, nombre: 'Estructuras de Datos', semestre: 3, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
-  { id: 3, nombre: 'Lógica Digital', semestre: 2, ncreditos: 3, horasDeLaMateria: 4, correlativa: false },
-  { id: 4, nombre: 'Programación Orientada a Objetos', semestre: 2, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
-  { id: 5, nombre: 'Bases de Datos', semestre: 4, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
-  { id: 6, nombre: 'Ingeniería de Software', semestre: 5, ncreditos: 3, horasDeLaMateria: 4, correlativa: true }
+  { id: 1, codigo: 1001, nombre: 'Cálculo Diferencial', semestre: 1, ncreditos: 3, horasDeLaMateria: 4, correlativa: false },
+  { id: 2, codigo: 1002, nombre: 'Estructuras de Datos', semestre: 3, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
+  { id: 3, codigo: 1003, nombre: 'Lógica Digital', semestre: 2, ncreditos: 3, horasDeLaMateria: 4, correlativa: false },
+  { id: 4, codigo: 1004, nombre: 'Programación Orientada a Objetos', semestre: 2, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
+  { id: 5, codigo: 1005, nombre: 'Bases de Datos', semestre: 4, ncreditos: 3, horasDeLaMateria: 4, correlativa: true },
+  { id: 6, codigo: 1006, nombre: 'Ingeniería de Software', semestre: 5, ncreditos: 3, horasDeLaMateria: 4, correlativa: true }
 ];
 
 export const GRUPOS_MOCK: GrupoDTO[] = [
