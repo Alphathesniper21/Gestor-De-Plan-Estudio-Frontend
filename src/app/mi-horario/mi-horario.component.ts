@@ -25,33 +25,32 @@ export class MiHorarioComponent {
   auth = inject(AuthService);
 
   grupos = this.svc.gruposEtiquetados;
+  semestres = this.svc.semestres;
 
   // Filtros
   fMateria = signal('');
   fGrupo = signal<number | null>(null);
   fId = signal<number | null>(null);
-  fDia = signal<Dia | ''>('');
+  fSemestre = signal<number | null>(null);
   fEstado = signal<'' | 'publicada' | 'borrador'>('');
   sinPublicar = this.svc.sinPublicar;
 
   hayFiltros = computed(
-    () => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || !!this.fDia() || !!this.fEstado()
+    () => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || this.fSemestre() !== null || !!this.fEstado()
   );
 
   clases = computed(() => {
     const materia = normalizar(this.fMateria());
     const grupo = this.fGrupo();
     const id = this.fId();
-    const dia = this.fDia();
     const estado = this.fEstado();
     return this.svc
-      .clases()
+      .clasesPorSemestre()
       .filter(
         c =>
           (!materia || normalizar(c.materia).includes(materia)) &&
           (grupo === null || c.grupoId === grupo) &&
           (id === null || c.id === id) &&
-          (!dia || c.dia === dia) &&
           (!estado || c.publicada === (estado === 'publicada'))
       );
   });
@@ -76,6 +75,10 @@ export class MiHorarioComponent {
   errorMover = signal('');
   nuevoDia: Dia = 'Lunes';
   nuevaHora = 8;
+
+  constructor() {
+    this.svc.filtrarPorSemestre(null);
+  }
 
   fmt(h: number): string {
     return this.svc.formatoHora(h);
@@ -134,11 +137,16 @@ export class MiHorarioComponent {
     return this.svc.esPausa(hora);
   }
 
+  cambiarSemestre(semestre: number | null): void {
+    this.fSemestre.set(semestre);
+    this.svc.filtrarPorSemestre(semestre);
+  }
+
   limpiarFiltros(): void {
     this.fMateria.set('');
     this.fGrupo.set(null);
     this.fId.set(null);
-    this.fDia.set('');
+    this.cambiarSemestre(null);
     this.fEstado.set('');
   }
 

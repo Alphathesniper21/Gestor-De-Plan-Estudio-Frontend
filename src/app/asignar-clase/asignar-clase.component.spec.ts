@@ -28,6 +28,8 @@ describe('AsignarClaseComponent', () => {
       ]),
       dias: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as Dia[],
       avisoSesiones: false,
+      textoPausa: signal('12:00 - 13:00'),
+      cruzaPausa: () => false,
       horasValidas: () => [7, 8, 9, 10, 13, 14, 15, 16],
       formatoHora: (h: number) => `${String(h).padStart(2, '0')}:00`,
       materiaDeGrupo: () => 101,

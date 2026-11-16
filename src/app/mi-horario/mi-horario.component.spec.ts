@@ -19,6 +19,7 @@ describe('MiHorarioComponent', () => {
   let fixture: ComponentFixture<MiHorarioComponent>;
   let router: Router;
   let horarioStub: Partial<HorarioService> & {
+    filtrarPorSemestre: jasmine.Spy;
     moverSesion: jasmine.Spy;
     eliminarSesion: jasmine.Spy;
   };
@@ -32,7 +33,8 @@ describe('MiHorarioComponent', () => {
     dia: 'Lunes',
     horaInicio: 8,
     horaFin: 10,
-    color: '#f97316'
+    color: '#f97316',
+    publicada: true
   };
 
   const clase2Solapada: ClaseHorario = {
@@ -44,7 +46,8 @@ describe('MiHorarioComponent', () => {
     dia: 'Lunes',
     horaInicio: 8,
     horaFin: 10,
-    color: '#2563eb'
+    color: '#2563eb',
+    publicada: true
   };
 
   beforeEach(async () => {
@@ -53,14 +56,22 @@ describe('MiHorarioComponent', () => {
     };
 
     horarioStub = {
+      gruposEtiquetados: signal([]),
+      semestres: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      sinPublicar: signal(0),
       clases: signal([clase1, clase2Solapada]),
+      clasesPorSemestre: signal([clase1, clase2Solapada]),
       clasesFueraDeHorario: signal<ClaseHorario[]>([]),
       dias: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as Dia[],
       horasGrilla: signal([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]),
+      pausa: signal({ inicio: 720, fin: 780 }),
+      textoPausa: signal('12:00 - 13:00'),
       avisoSesiones: false,
+      esPausa: (h: number) => h === 12,
       formatoHora: (h: number) => `${String(h).padStart(2, '0')}:00`,
       dentroDeHorario: () => true,
       horasValidas: () => [7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20],
+      filtrarPorSemestre: jasmine.createSpy('filtrarPorSemestre'),
       moverSesion: jasmine.createSpy('moverSesion').and.resolveTo(null),
       eliminarSesion: jasmine.createSpy('eliminarSesion').and.resolveTo(null)
     };
@@ -122,5 +133,17 @@ describe('MiHorarioComponent', () => {
 
     expect(horarioStub.eliminarSesion).toHaveBeenCalledWith(10);
     expect(component.seleccionada()).toBeNull();
+  });
+
+  it('cambiarSemestre() debería actualizar fSemestre e invocar filtrarPorSemestre en el servicio (RF-10)', () => {
+    component.cambiarSemestre(4);
+
+    expect(component.fSemestre()).toBe(4);
+    expect(horarioStub.filtrarPorSemestre).toHaveBeenCalledWith(4);
+    expect(component.hayFiltros()).toBeTrue();
+
+    component.limpiarFiltros();
+    expect(component.fSemestre()).toBeNull();
+    expect(horarioStub.filtrarPorSemestre).toHaveBeenCalledWith(null);
   });
 });

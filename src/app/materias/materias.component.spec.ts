@@ -67,10 +67,10 @@ describe('MateriasComponent', () => {
   });
 
   it('visibles() debería filtrar ignorando tildes y mayúsculas', () => {
-    component.filtro.set('programacion');
+    component.fNombre.set('programacion');
     expect(component.visibles().length).toBe(1);
 
-    component.filtro.set('9999');
+    component.fNombre.set('9999');
     expect(component.visibles().length).toBe(0);
   });
 

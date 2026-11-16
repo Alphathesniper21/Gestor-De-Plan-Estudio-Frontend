@@ -55,24 +55,14 @@
     <input id="fh-id" type="number" min="1" placeholder="Ej. 5" [ngModel]="fId()" (ngModelChange)="fId.set($event)" />
   </div>
   <div class="filtro">
-    <label for="fh-dia">Día</label>
-    <select id="fh-dia" [ngModel]="fDia()" (ngModelChange)="fDia.set($event)">
-      <option value="">Todos</option>
-      @for (d of dias; track d) {
-        <option [value]="d">{{ d }}</option>
+    <label for="fh-semestre">Semestre</label>
+    <select id="fh-semestre" [ngModel]="fSemestre()" (ngModelChange)="cambiarSemestre($event)">
+      <option [ngValue]="null">Todos</option>
+      @for (s of semestres; track s) {
+        <option [ngValue]="s">{{ s }}° semestre</option>
       }
     </select>
   </div>
-  @if (auth.esGestor()) {
-    <div class="filtro">
-      <label for="fh-estado">Estado</label>
-      <select id="fh-estado" [ngModel]="fEstado()" (ngModelChange)="fEstado.set($event)">
-        <option value="">Todos</option>
-        <option value="publicada">Publicadas</option>
-        <option value="borrador">Borradores</option>
-      </select>
-    </div>
-  }
   <div class="filtros-pie">
     <small>{{ clases().length }} de {{ total() }}</small>
     <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>

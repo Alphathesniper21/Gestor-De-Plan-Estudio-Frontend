@@ -23,6 +23,7 @@ export class HorarioService {
   private readonly api = environment.apiUrl;
 
   readonly dias: Dia[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  readonly semestres = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   /** Filas del calendario: la jornada configurada, ampliada si hay sesiones que quedaron fuera de ella. */
   readonly horasGrilla = computed(() => {
     const r = this.params.reglas();
@@ -43,7 +44,9 @@ export class HorarioService {
   readonly cargando = signal(false);
 
   private pendientes = 0;
+  private semestreActivo: number | null = null;
   private readonly sesiones = signal<SesionDTO[]>(environment.usarMock ? SESIONES_MOCK : this.leerLocal());
+  private readonly sesionesSemestre = signal<SesionDTO[] | null>(null);
   /** Ids publicados cuando el back no marca cada sesión (modo mock o sesiones guardadas en el navegador). */
   private readonly publicadasLocal = signal<number[]>(this.leerPublicadas());
   /** Estado global del horario según el back (/horario/estado). */
@@ -63,6 +66,16 @@ export class HorarioService {
       return clase ? [clase] : [];
     })
   );
+  /** Clases del semestre filtrado (/sesion/mostrarporsemestre/{semestre}), o todas las visibles si no hay filtro (RF-10). */
+  readonly clasesPorSemestre = computed(() => {
+    const lista = this.sesionesSemestre();
+    if (lista === null) return this.clases();
+    const visibles = this.auth.esGestor() ? lista : lista.filter(s => this.estaPublicada(s));
+    return visibles.flatMap(s => {
+      const clase = this.aClase(s);
+      return clase ? [clase] : [];
+    });
+  });
   /** Sesiones que no cumplen la jornada y la pausa vigentes (p. ej. después de cambiar un parámetro). */
   readonly clasesFueraDeHorario = computed(() => this.clases().filter(c => !this.dentroDeHorario(c)));
   readonly totalMaterias = computed(() => this.materias().length);
@@ -358,9 +371,35 @@ export class HorarioService {
       if (error) return error;
     }
     this.sesiones.update(l => l.filter(s => s.id !== id));
+    this.sesionesSemestre.update(l => (l ? l.filter(s => s.id !== id) : null));
     this.desmarcarPublicada(id);
     this.guardarLocal();
     return null;
+  }
+
+  /** Consulta al back las sesiones de un semestre (/sesion/mostrarporsemestre/{semestre}) o restaura todas (RF-10). */
+  filtrarPorSemestre(semestre: number | null): void {
+    this.semestreActivo = semestre;
+    if (semestre === null) {
+      this.sesionesSemestre.set(null);
+      return;
+    }
+    if (environment.usarMock || !environment.sesionesEnBack) {
+      const idsGrupos = new Set(
+        this.grupos()
+          .filter(g => this.materias().find(m => m.id === g.materiaId)?.semestre === semestre)
+          .map(g => g.id)
+      );
+      this.sesionesSemestre.set(this.sesiones().filter(s => idsGrupos.has(s.grupoId)));
+      return;
+    }
+    this.http.get<SesionDTO[] | null>(`${this.api}/sesion/mostrarporsemestre/${semestre}`).subscribe({
+      next: lista => this.sesionesSemestre.set(lista ?? []),
+      error: e => {
+        this.errorApi.set(this.mensajeError(e));
+        this.sesionesSemestre.set([]);
+      }
+    });
   }
 
   private cargarMaterias(): void {
@@ -379,7 +418,10 @@ export class HorarioService {
 
   private cargarSesiones(): void {
     this.http.get<SesionDTO[] | null>(`${this.api}/sesion/mostrartodo`).subscribe({
-      next: lista => this.sesiones.set(lista ?? []),
+      next: lista => {
+        this.sesiones.set(lista ?? []);
+        if (this.semestreActivo !== null) this.filtrarPorSemestre(this.semestreActivo);
+      },
       error: e => this.errorApi.set(this.mensajeError(e))
     }).add(() => this.terminar());
   }

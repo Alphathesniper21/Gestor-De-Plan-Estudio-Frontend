@@ -85,8 +85,9 @@ describe('PublicacionService', () => {
     httpMock.expectOne(`${environment.apiUrl}/materia/mostrartodo`).flush(horarioService.materias());
     httpMock.expectOne(`${environment.apiUrl}/grupo/mostrartodo`).flush(horarioService.grupos());
     httpMock.expectOne(`${environment.apiUrl}/sesion/mostrartodo`).flush([
-      { id: 10, grupoId: 1, diaSemana: 1, horaInicio: '07:00:00', horaFin: '09:00:00' }
+      { id: 10, grupoId: 1, diaSemana: 1, horaInicio: '07:00:00', horaFin: '09:00:00', publicada: true }
     ]);
+    httpMock.expectOne(`${environment.apiUrl}/horario/estado`).flush(false);
 
     const promesa = service.publicar();
 
@@ -96,9 +97,14 @@ describe('PublicacionService', () => {
 
     const resultado = await promesa;
 
-    // Al publicar recarga pendientes y estado
+    // Al publicar recarga pendientes, estado y horario
     httpMock.expectOne(`${environment.apiUrl}/horario/pendientes`).flush([]);
-    httpMock.expectOne(`${environment.apiUrl}/horario/estado`).flush(true);
+    httpMock.match(`${environment.apiUrl}/horario/estado`).forEach(r => r.flush(true));
+    httpMock.expectOne(`${environment.apiUrl}/materia/mostrartodo`).flush(horarioService.materias());
+    httpMock.expectOne(`${environment.apiUrl}/grupo/mostrartodo`).flush(horarioService.grupos());
+    httpMock.expectOne(`${environment.apiUrl}/sesion/mostrartodo`).flush([
+      { id: 10, grupoId: 1, diaSemana: 1, horaInicio: '07:00:00', horaFin: '09:00:00', publicada: true }
+    ]);
 
     expect(resultado).toBeNull();
     expect(service.publicado()).toBeTrue();

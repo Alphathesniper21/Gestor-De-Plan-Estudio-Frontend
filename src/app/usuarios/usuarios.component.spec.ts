@@ -33,7 +33,8 @@ describe('UsuariosComponent', () => {
   beforeEach(async () => {
     const authStub: Partial<AuthService> = {
       usuario: signal('gestor'),
-      esGestor: signal(true)
+      esGestor: signal(true),
+      renombrar: jasmine.createSpy('renombrar')
     };
 
     usuarioStub = {
@@ -65,11 +66,11 @@ describe('UsuariosComponent', () => {
     expect(component.usuarios().length).toBe(1);
   });
 
-  it('editandoMiCuenta debería ser true cuando se edita el mismo usuario autenticado', () => {
-    expect(component.editandoMiCuenta).toBeFalse();
+  it('editandoPropio debería ser true cuando se edita el mismo usuario autenticado', () => {
+    expect(component.editandoPropio).toBeFalse();
 
     component.editar(usuarioDemo);
-    expect(component.editandoMiCuenta).toBeTrue();
+    expect(component.editandoPropio).toBeTrue();
   });
 
   it('guardar() debería llamar a crear cuando editandoId es null y a actualizar cuando se edita un usuario', async () => {

@@ -92,6 +92,7 @@ describe('UsuarioService', () => {
       id: 1,
       nombre: 'Martin Actualizado',
       correo: 'martin@unbosque.edu.co',
+      username: 'martinp',
       rol: 'GESTOR',
       password: '   '
     });

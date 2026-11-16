@@ -58,6 +58,7 @@ describe('HorarioService', () => {
     httpMock.expectOne(`${environment.apiUrl}/materia/mostrartodo`).flush(mockMaterias);
     httpMock.expectOne(`${environment.apiUrl}/grupo/mostrartodo`).flush(mockGrupos);
     httpMock.expectOne(`${environment.apiUrl}/sesion/mostrartodo`).flush(mockSesiones);
+    httpMock.expectOne(`${environment.apiUrl}/horario/estado`).flush(true);
   });
 
   afterEach(() => {
@@ -212,5 +213,19 @@ describe('HorarioService', () => {
 
     expect(await promesaEliminar).toBeNull();
     expect(service.totalSesiones()).toBe(0);
+  });
+
+  it('filtrarPorSemestre() debería consultar GET /sesion/mostrarporsemestre/{semestre} y actualizar clasesPorSemestre (RF-10)', () => {
+    service.filtrarPorSemestre(4);
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/sesion/mostrarporsemestre/4`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockSesiones);
+
+    expect(service.clasesPorSemestre().length).toBe(1);
+    expect(service.clasesPorSemestre()[0].materia).toBe('Estructuras de Datos');
+
+    service.filtrarPorSemestre(null);
+    expect(service.clasesPorSemestre().length).toBe(1);
   });
 });
