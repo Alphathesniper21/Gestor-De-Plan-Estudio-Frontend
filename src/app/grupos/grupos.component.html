@@ -46,8 +46,31 @@
 }
 
 <div class="card">
-  <div class="buscador">
-    <input type="search" placeholder="Buscar por materia..." [value]="filtro()" (input)="buscar($event)" />
+  <div class="filtros">
+    <div class="filtro ancho">
+      <label for="fg-materia">Nombre de la materia</label>
+      <input id="fg-materia" type="search" placeholder="Ej. Estructuras" [ngModel]="fMateria()" (ngModelChange)="fMateria.set($event)" />
+    </div>
+    <div class="filtro corto">
+      <label for="fg-grupo">Grupo</label>
+      <input id="fg-grupo" type="number" min="1" placeholder="Ej. 2" [ngModel]="fGrupo()" (ngModelChange)="fGrupo.set($event)" />
+    </div>
+    <div class="filtro corto">
+      <label for="fg-id">ID</label>
+      <input id="fg-id" type="number" min="1" placeholder="Ej. 4" [ngModel]="fId()" (ngModelChange)="fId.set($event)" />
+    </div>
+    <div class="filtro">
+      <label for="fg-sesiones">Sesiones</label>
+      <select id="fg-sesiones" [ngModel]="fSesiones()" (ngModelChange)="fSesiones.set($event)">
+        <option value="">Todas</option>
+        <option value="completas">Completas</option>
+        <option value="pendientes">Con sesiones por asignar</option>
+      </select>
+    </div>
+    <div class="filtros-pie">
+      <small>{{ visibles().length }} de {{ filas().length }}</small>
+      <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
   </div>
   @if (cargando()) {
     <div class="vacio">Cargando...</div>
@@ -56,6 +79,7 @@
       <table class="tabla">
         <thead>
           <tr>
+            <th>ID</th>
             <th>Materia</th>
             <th>Grupo</th>
             <th>Cupo</th>
@@ -68,6 +92,7 @@
         <tbody>
           @for (f of visibles(); track f.grupo.id) {
             <tr>
+              <td class="id-col">{{ f.grupo.id }}</td>
               <td>{{ f.materia }}</td>
               <td>{{ f.grupo.numeroGrupo }}</td>
               <td>{{ f.grupo.cupoPlaneado }}</td>
@@ -86,6 +111,6 @@
       </table>
     </div>
   } @else {
-    <div class="vacio">No hay grupos para mostrar.</div>
+    <div class="vacio">{{ hayFiltros() ? 'Ningún grupo coincide con los filtros.' : 'No hay grupos para mostrar.' }}</div>
   }
 </div>

@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { HorarioService } from '../services/horario.service';
 import { GrupoDTO } from '../models/grupo.dto';
+import { normalizar } from '../utils/texto';
 
 @Component({
   selector: 'app-grupos',
@@ -16,11 +17,25 @@ export class GruposComponent {
   filas = this.svc.filasGrupos;
   cupoMaximo = this.svc.cupoMaximo;
   cargando = this.svc.cargando;
-  filtro = signal('');
+  fMateria = signal('');
+  fGrupo = signal<number | null>(null);
+  fId = signal<number | null>(null);
+  fSesiones = signal<'' | 'completas' | 'pendientes'>('');
+
+  hayFiltros = computed(() => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || !!this.fSesiones());
 
   visibles = computed(() => {
-    const f = this.normalizar(this.filtro());
-    return this.filas().filter(x => this.normalizar(x.materia).includes(f));
+    const materia = normalizar(this.fMateria());
+    const grupo = this.fGrupo();
+    const id = this.fId();
+    const sesiones = this.fSesiones();
+    return this.filas().filter(
+      x =>
+        (!materia || normalizar(x.materia).includes(materia)) &&
+        (grupo === null || x.grupo.numeroGrupo === grupo) &&
+        (id === null || x.grupo.id === id) &&
+        (!sesiones || x.sesiones >= x.maxSesiones === (sesiones === 'completas'))
+    );
   });
 
   editandoId: number | null = null;
@@ -31,8 +46,11 @@ export class GruposComponent {
   error = signal('');
   exito = signal('');
 
-  buscar(evento: Event): void {
-    this.filtro.set((evento.target as HTMLInputElement).value);
+  limpiarFiltros(): void {
+    this.fMateria.set('');
+    this.fGrupo.set(null);
+    this.fId.set(null);
+    this.fSesiones.set('');
   }
 
   recargar(): void {
@@ -70,9 +88,5 @@ export class GruposComponent {
     const resultado = await this.svc.eliminarGrupo(id);
     this.error.set(resultado ?? '');
     this.exito.set('');
-  }
-
-  private normalizar(texto: string): string {
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
 }

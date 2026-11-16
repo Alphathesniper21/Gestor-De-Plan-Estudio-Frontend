@@ -76,6 +76,12 @@ export class AuthService {
     }
   }
 
+  /** Refleja en la sesión actual un cambio del nombre de usuario propio. */
+  renombrar(usuario: string): void {
+    localStorage.setItem('usuario', usuario);
+    this.usuario.set(usuario);
+  }
+
   private guardar(respuesta: AuthResponse, usuario: string): void {
     localStorage.setItem('token', respuesta.token);
     localStorage.setItem('rol', respuesta.rol);

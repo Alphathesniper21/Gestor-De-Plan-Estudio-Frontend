@@ -53,8 +53,32 @@
 }
 
 <div class="card">
-  <div class="buscador">
-    <input type="search" placeholder="Buscar por nombre o código..." [value]="filtro()" (input)="buscar($event)" />
+  <div class="filtros">
+    <div class="filtro ancho">
+      <label for="fm-nombre">Nombre o código</label>
+      <input id="fm-nombre" type="search" placeholder="Ej. Cálculo" [ngModel]="fNombre()" (ngModelChange)="fNombre.set($event)" />
+    </div>
+    <div class="filtro">
+      <label for="fm-semestre">Semestre</label>
+      <select id="fm-semestre" [ngModel]="fSemestre()" (ngModelChange)="fSemestre.set($event)">
+        <option [ngValue]="null">Todos</option>
+        @for (s of semestres(); track s) {
+          <option [ngValue]="s">Semestre {{ s }}</option>
+        }
+      </select>
+    </div>
+    <div class="filtro">
+      <label for="fm-correlativa">Correlativa</label>
+      <select id="fm-correlativa" [ngModel]="fCorrelativa()" (ngModelChange)="fCorrelativa.set($event)">
+        <option value="">Todas</option>
+        <option value="si">Sí</option>
+        <option value="no">No</option>
+      </select>
+    </div>
+    <div class="filtros-pie">
+      <small>{{ visibles().length }} de {{ materias().length }}</small>
+      <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
   </div>
   @if (cargando()) {
     <div class="vacio">Cargando...</div>
@@ -97,6 +121,6 @@
       </table>
     </div>
   } @else {
-    <div class="vacio">No hay materias para mostrar.</div>
+    <div class="vacio">{{ hayFiltros() ? 'Ninguna materia coincide con los filtros.' : 'No hay materias para mostrar.' }}</div>
   }
 </div>

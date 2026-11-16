@@ -33,7 +33,9 @@
     <span class="badge" [class.badge-si]="pub.publicado()">{{ pub.publicado() ? 'Publicado' : 'Sin publicar' }}</span>
   </div>
 
-  @if (pub.pendientes().length) {
+  @if (!auth.esGestor()) {
+    <p>{{ pub.publicado() ? 'Estás viendo el horario publicado.' : 'El horario aún no ha sido publicado. Cuando se publique podrás consultarlo aquí.' }}</p>
+  } @else if (pub.pendientes().length) {
     <p>Faltan sesiones en {{ pub.pendientes().length }} grupo(s):</p>
     <ul class="lista-pendientes">
       @for (f of pub.pendientes(); track f.grupo.id) {

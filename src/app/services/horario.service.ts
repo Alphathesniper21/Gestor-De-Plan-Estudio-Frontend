@@ -10,16 +10,20 @@ import { ClaseHorario, Dia, NuevaSesion } from '../models/horario.model';
 import { GRUPOS_MOCK, MATERIAS_MOCK, SESIONES_MOCK } from '../mock/horario.mock';
 import { DatosForm, formulario } from './http-form';
 import { ParametroService } from './parametro.service';
+import { AuthService } from './auth.service';
 
 const LOCAL_KEY = 'sesiones-local';
+const PUBLICADAS_KEY = 'sesiones-publicadas';
 
 @Injectable({ providedIn: 'root' })
 export class HorarioService {
   private http = inject(HttpClient);
   private params = inject(ParametroService);
+  private auth = inject(AuthService);
   private readonly api = environment.apiUrl;
 
   readonly dias: Dia[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  readonly semestres = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   /** Filas del calendario: la jornada configurada, ampliada si hay sesiones que quedaron fuera de ella. */
   readonly horasGrilla = computed(() => {
     const r = this.params.reglas();
@@ -40,15 +44,38 @@ export class HorarioService {
   readonly cargando = signal(false);
 
   private pendientes = 0;
+  private semestreActivo: number | null = null;
   private readonly sesiones = signal<SesionDTO[]>(environment.usarMock ? SESIONES_MOCK : this.leerLocal());
+  private readonly sesionesSemestre = signal<SesionDTO[] | null>(null);
+  /** Ids publicados cuando el back no marca cada sesión (modo mock o sesiones guardadas en el navegador). */
+  private readonly publicadasLocal = signal<number[]>(this.leerPublicadas());
+  /** Estado global del horario según el back (/horario/estado). */
+  readonly publicadoBack = signal(false);
+
+  /** El gestor ve todo (borradores incluidos); el consultante solo lo publicado. */
+  private readonly sesionesVisibles = computed(() =>
+    this.auth.esGestor() ? this.sesiones() : this.sesiones().filter(s => this.estaPublicada(s))
+  );
+  /** Sesiones en armado que todavía no se han publicado. */
+  readonly sinPublicar = computed(() => this.sesiones().filter(s => !this.estaPublicada(s)).length);
   private readonly colores = ['#f97316', '#2563eb', '#059669', '#7c3aed', '#db2777', '#0891b2', '#ca8a04'];
 
   readonly clases = computed(() =>
-    this.sesiones().flatMap(s => {
+    this.sesionesVisibles().flatMap(s => {
       const clase = this.aClase(s);
       return clase ? [clase] : [];
     })
   );
+  /** Clases del semestre filtrado (/sesion/mostrarporsemestre/{semestre}), o todas las visibles si no hay filtro (RF-10). */
+  readonly clasesPorSemestre = computed(() => {
+    const lista = this.sesionesSemestre();
+    if (lista === null) return this.clases();
+    const visibles = this.auth.esGestor() ? lista : lista.filter(s => this.estaPublicada(s));
+    return visibles.flatMap(s => {
+      const clase = this.aClase(s);
+      return clase ? [clase] : [];
+    });
+  });
   /** Sesiones que no cumplen la jornada y la pausa vigentes (p. ej. después de cambiar un parámetro). */
   readonly clasesFueraDeHorario = computed(() => this.clases().filter(c => !this.dentroDeHorario(c)));
   readonly totalMaterias = computed(() => this.materias().length);
@@ -67,7 +94,7 @@ export class HorarioService {
     this.grupos().map(g => ({
       grupo: g,
       materia: this.nombreMateria(g.materiaId),
-      sesiones: this.sesiones().filter(s => s.grupoId === g.id).length,
+      sesiones: this.sesionesVisibles().filter(s => s.grupoId === g.id).length,
       maxSesiones: this.maxSesiones(g)
     }))
   );
@@ -83,7 +110,10 @@ export class HorarioService {
     this.cargando.set(true);
     this.cargarMaterias();
     this.cargarGrupos();
-    if (environment.sesionesEnBack) this.cargarSesiones();
+    if (environment.sesionesEnBack) {
+      this.cargarSesiones();
+      this.cargarEstado();
+    }
   }
 
   formatoHora(h: number): string {
@@ -96,6 +126,25 @@ export class HorarioService {
 
   materiaDeGrupo(grupoId: number | null): number {
     return this.grupos().find(g => g.id === grupoId)?.materiaId ?? 0;
+  }
+
+  /** Pausa del mediodía (almuerzo), en minutos desde la medianoche. */
+  readonly pausa = computed(() => {
+    const r = this.params.reglas();
+    return { inicio: r.pausaInicio, fin: r.pausaFin };
+  });
+  readonly textoPausa = computed(() => `${this.hhmm(this.pausa().inicio)} - ${this.hhmm(this.pausa().fin)}`);
+
+  /** true si la fila de esa hora de la grilla toca la pausa del mediodía. */
+  esPausa(hora: number): boolean {
+    const p = this.pausa();
+    return hora * 60 < p.fin && p.inicio < (hora + 1) * 60;
+  }
+
+  /** true si una sesión de 2 h que inicia a esa hora cruza la pausa del mediodía. */
+  cruzaPausa(horaInicio: number): boolean {
+    const p = this.pausa();
+    return horaInicio * 60 < p.fin && p.inicio < (horaInicio + 2) * 60;
   }
 
   /** La sesión cabe en la jornada del día y no cruza la pausa del mediodía. */
@@ -273,7 +322,8 @@ export class HorarioService {
         grupoId: grupo.id,
         diaSemana: diaNumero,
         horaInicio: `${this.formatoHora(d.horaInicio)}:00`,
-        horaFin: `${this.formatoHora(horaFin)}:00`
+        horaFin: `${this.formatoHora(horaFin)}:00`,
+        publicada: false
       }
     ]);
     this.guardarLocal();
@@ -296,6 +346,7 @@ export class HorarioService {
         horaFin: this.formatoHora(horaFin)
       });
       if (error) return error;
+      this.desmarcarPublicada(id);
       this.cargarSesiones();
       return null;
     }
@@ -305,10 +356,11 @@ export class HorarioService {
     this.sesiones.update(l =>
       l.map(s =>
         s.id === id
-          ? { ...s, diaSemana: diaNumero, horaInicio: `${this.formatoHora(horaInicio)}:00`, horaFin: `${this.formatoHora(horaFin)}:00` }
+          ? { ...s, diaSemana: diaNumero, horaInicio: `${this.formatoHora(horaInicio)}:00`, horaFin: `${this.formatoHora(horaFin)}:00`, publicada: false }
           : s
       )
     );
+    this.desmarcarPublicada(id);
     this.guardarLocal();
     return null;
   }
@@ -319,8 +371,35 @@ export class HorarioService {
       if (error) return error;
     }
     this.sesiones.update(l => l.filter(s => s.id !== id));
+    this.sesionesSemestre.update(l => (l ? l.filter(s => s.id !== id) : null));
+    this.desmarcarPublicada(id);
     this.guardarLocal();
     return null;
+  }
+
+  /** Consulta al back las sesiones de un semestre (/sesion/mostrarporsemestre/{semestre}) o restaura todas (RF-10). */
+  filtrarPorSemestre(semestre: number | null): void {
+    this.semestreActivo = semestre;
+    if (semestre === null) {
+      this.sesionesSemestre.set(null);
+      return;
+    }
+    if (environment.usarMock || !environment.sesionesEnBack) {
+      const idsGrupos = new Set(
+        this.grupos()
+          .filter(g => this.materias().find(m => m.id === g.materiaId)?.semestre === semestre)
+          .map(g => g.id)
+      );
+      this.sesionesSemestre.set(this.sesiones().filter(s => idsGrupos.has(s.grupoId)));
+      return;
+    }
+    this.http.get<SesionDTO[] | null>(`${this.api}/sesion/mostrarporsemestre/${semestre}`).subscribe({
+      next: lista => this.sesionesSemestre.set(lista ?? []),
+      error: e => {
+        this.errorApi.set(this.mensajeError(e));
+        this.sesionesSemestre.set([]);
+      }
+    });
   }
 
   private cargarMaterias(): void {
@@ -339,7 +418,10 @@ export class HorarioService {
 
   private cargarSesiones(): void {
     this.http.get<SesionDTO[] | null>(`${this.api}/sesion/mostrartodo`).subscribe({
-      next: lista => this.sesiones.set(lista ?? []),
+      next: lista => {
+        this.sesiones.set(lista ?? []);
+        if (this.semestreActivo !== null) this.filtrarPorSemestre(this.semestreActivo);
+      },
       error: e => this.errorApi.set(this.mensajeError(e))
     }).add(() => this.terminar());
   }
@@ -357,6 +439,52 @@ export class HorarioService {
   private terminar(): void {
     this.pendientes--;
     if (this.pendientes <= 0) this.cargando.set(false);
+  }
+
+  /** Consulta el estado global de publicación al back (lo necesita también el consultante). */
+  cargarEstado(): void {
+    if (environment.usarMock) return;
+    this.http.get<boolean>(`${this.api}/horario/estado`).subscribe({
+      next: valor => this.publicadoBack.set(valor === true),
+      error: e => this.errorApi.set(this.mensajeError(e))
+    });
+  }
+
+  /** Publica el horario: desde ese momento el consultante ve todas las sesiones actuales. */
+  marcarTodasPublicadas(): void {
+    this.sesiones.update(l => l.map(s => ({ ...s, publicada: true })));
+    this.guardarPublicadas(this.sesiones().map(s => s.id));
+    this.guardarLocal();
+  }
+
+  /**
+   * Una sesión es pública si el back la marca como publicada; si no la marca, depende del estado
+   * global del horario en el back, o de la lista local cuando las sesiones viven en el navegador.
+   */
+  private estaPublicada(s: SesionDTO): boolean {
+    if (typeof s.publicada === 'boolean') return s.publicada;
+    if (!environment.usarMock && environment.sesionesEnBack) return this.publicadoBack();
+    return this.publicadasLocal().includes(s.id);
+  }
+
+  private desmarcarPublicada(id: number): void {
+    if (this.publicadasLocal().includes(id)) this.guardarPublicadas(this.publicadasLocal().filter(x => x !== id));
+  }
+
+  private guardarPublicadas(ids: number[]): void {
+    this.publicadasLocal.set(ids);
+    try {
+      localStorage.setItem(PUBLICADAS_KEY, JSON.stringify(ids));
+    } catch {}
+  }
+
+  private leerPublicadas(): number[] {
+    try {
+      const ids = JSON.parse(localStorage.getItem(PUBLICADAS_KEY) ?? '[]');
+      return Array.isArray(ids) ? ids : [];
+    } catch {
+      return [];
+    }
   }
 
   private guardarLocal(): void {
@@ -429,7 +557,8 @@ export class HorarioService {
       dia: this.dias[s.diaSemana - 1] ?? 'Lunes',
       horaInicio: this.hora(s.horaInicio),
       horaFin: this.hora(s.horaFin),
-      color: this.colorDe(grupo.materiaId)
+      color: this.colorDe(grupo.materiaId),
+      publicada: this.estaPublicada(s)
     };
   }
 

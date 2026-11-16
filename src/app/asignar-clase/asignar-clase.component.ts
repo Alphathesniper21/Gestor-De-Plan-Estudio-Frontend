@@ -17,6 +17,7 @@ export class AsignarClaseComponent {
   grupos = this.svc.gruposEtiquetados;
   dias = this.svc.dias;
   aviso = this.svc.avisoSesiones;
+  pausa = this.svc.textoPausa;
 
   grupoId: number | null = null;
   dia: Dia = 'Lunes';
@@ -31,8 +32,16 @@ export class AsignarClaseComponent {
     const d = params.get('dia') as Dia | null;
     const h = Number(params.get('hora'));
     if (d && this.dias.includes(d)) this.dia = d;
-    if (h) this.horaInicio = h;
-    this.ajustarHora();
+    if (h) {
+      if (this.horasDisponibles().includes(h)) {
+        this.horaInicio = h;
+      } else {
+        this.ajustarHora();
+        this.error.set(this.motivoHora(h));
+      }
+    } else {
+      this.ajustarHora();
+    }
   }
 
   cambiarDia(dia: Dia): void {
@@ -44,6 +53,13 @@ export class AsignarClaseComponent {
   private ajustarHora(): void {
     const validas = this.horasDisponibles();
     if (validas.length && !validas.includes(this.horaInicio)) this.horaInicio = validas[0];
+  }
+
+  private motivoHora(h: number): string {
+    const base = this.svc.cruzaPausa(h)
+      ? `Una sesión que inicie a las ${this.fmt(h)} cruza la franja de almuerzo (${this.pausa()}).`
+      : `No se puede iniciar una sesión de 2 horas a las ${this.fmt(h)} el ${this.dia}.`;
+    return `${base} Elige otra hora de inicio.`;
   }
 
   get horaFin(): number {
@@ -82,6 +98,7 @@ export class AsignarClaseComponent {
     this.grupoId = null;
     this.dia = 'Lunes';
     this.horaInicio = 8;
+    this.ajustarHora();
     this.error.set('');
     this.exito.set(false);
   }

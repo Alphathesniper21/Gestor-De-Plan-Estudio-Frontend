@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { HorarioService } from '../services/horario.service';
 import { MateriaDTO } from '../models/materia.dto';
+import { normalizar } from '../utils/texto';
 
 @Component({
   selector: 'app-materias',
@@ -14,11 +15,23 @@ export class MateriasComponent {
 
   materias = this.svc.materias;
   cargando = this.svc.cargando;
-  filtro = signal('');
+  fNombre = signal('');
+  fSemestre = signal<number | null>(null);
+  fCorrelativa = signal<'' | 'si' | 'no'>('');
+
+  semestres = computed(() => [...new Set(this.materias().map(m => m.semestre))].sort((a, b) => a - b));
+  hayFiltros = computed(() => !!this.fNombre() || this.fSemestre() !== null || !!this.fCorrelativa());
 
   visibles = computed(() => {
-    const f = this.normalizar(this.filtro());
-    return this.materias().filter(m => this.normalizar(m.nombre).includes(f) || String(m.codigo).includes(f));
+    const texto = normalizar(this.fNombre());
+    const semestre = this.fSemestre();
+    const correlativa = this.fCorrelativa();
+    return this.materias().filter(
+      m =>
+        (!texto || normalizar(m.nombre).includes(texto) || String(m.codigo).includes(texto)) &&
+        (semestre === null || m.semestre === semestre) &&
+        (!correlativa || m.correlativa === (correlativa === 'si'))
+    );
   });
 
   editandoId: number | null = null;
@@ -32,8 +45,10 @@ export class MateriasComponent {
   error = signal('');
   exito = signal(false);
 
-  buscar(evento: Event): void {
-    this.filtro.set((evento.target as HTMLInputElement).value);
+  limpiarFiltros(): void {
+    this.fNombre.set('');
+    this.fSemestre.set(null);
+    this.fCorrelativa.set('');
   }
 
   recargar(): void {
@@ -84,9 +99,5 @@ export class MateriasComponent {
     const resultado = await this.svc.eliminarMateria(id);
     this.error.set(resultado ?? '');
     this.exito.set(false);
-  }
-
-  private normalizar(texto: string): string {
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
 }
