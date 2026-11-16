@@ -18,6 +18,7 @@ export interface EdicionUsuario {
   id: number;
   nombre: string;
   correo: string;
+  username: string;
   rol: RolUsuario;
   /** Vacía = no cambiar la contraseña. */
   password: string;
@@ -69,12 +70,17 @@ export class UsuarioService {
   }
 
   async actualizar(u: EdicionUsuario): Promise<string | null> {
-    if (!u.nombre.trim() || !u.correo.trim()) return 'Completa el nombre y el correo.';
+    if (!u.nombre.trim() || !u.correo.trim() || !u.username.trim()) return 'Nombre, correo y usuario son obligatorios.';
+    const username = u.username.trim();
+    if (this.usuarios().some(x => x.id !== u.id && x.username.toLowerCase() === username.toLowerCase())) {
+      return 'Ya existe otro usuario con ese nombre de usuario.';
+    }
     if (!environment.usarMock) {
       const error = await this.llamar('PUT', '/usuario/actualizar', {
         id: u.id,
         nombre: u.nombre,
         correo: u.correo,
+        username,
         rol: u.rol,
         password: u.password.trim() ? u.password : null
       });
@@ -82,7 +88,7 @@ export class UsuarioService {
       this.cargar();
       return null;
     }
-    this.usuarios.update(l => l.map(x => (x.id === u.id ? { ...x, nombre: u.nombre, correo: u.correo, rol: u.rol } : x)));
+    this.usuarios.update(l => l.map(x => (x.id === u.id ? { ...x, nombre: u.nombre, correo: u.correo, username, rol: u.rol } : x)));
     return null;
   }
 

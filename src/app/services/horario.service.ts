@@ -98,6 +98,25 @@ export class HorarioService {
     return this.grupos().find(g => g.id === grupoId)?.materiaId ?? 0;
   }
 
+  /** Pausa del mediodía (almuerzo), en minutos desde la medianoche. */
+  readonly pausa = computed(() => {
+    const r = this.params.reglas();
+    return { inicio: r.pausaInicio, fin: r.pausaFin };
+  });
+  readonly textoPausa = computed(() => `${this.hhmm(this.pausa().inicio)} - ${this.hhmm(this.pausa().fin)}`);
+
+  /** true si la fila de esa hora de la grilla toca la pausa del mediodía. */
+  esPausa(hora: number): boolean {
+    const p = this.pausa();
+    return hora * 60 < p.fin && p.inicio < (hora + 1) * 60;
+  }
+
+  /** true si una sesión de 2 h que inicia a esa hora cruza la pausa del mediodía. */
+  cruzaPausa(horaInicio: number): boolean {
+    const p = this.pausa();
+    return horaInicio * 60 < p.fin && p.inicio < (horaInicio + 2) * 60;
+  }
+
   /** La sesión cabe en la jornada del día y no cruza la pausa del mediodía. */
   dentroDeHorario(c: ClaseHorario): boolean {
     const r = this.params.reglas();

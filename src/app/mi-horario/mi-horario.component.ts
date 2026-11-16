@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { HorarioService } from '../services/horario.service';
 import { ClaseHorario, Dia } from '../models/horario.model';
+import { normalizar } from '../utils/texto';
 
 interface Bloque {
   clase: ClaseHorario;
@@ -23,12 +24,46 @@ export class MiHorarioComponent {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  clases = this.svc.clases;
+  grupos = this.svc.gruposEtiquetados;
+
+  // Filtros
+  fMateria = signal('');
+  fGrupo = signal<number | null>(null);
+  fId = signal<number | null>(null);
+  fDia = signal<Dia | ''>('');
+
+  hayFiltros = computed(() => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || !!this.fDia());
+
+  clases = computed(() => {
+    const materia = normalizar(this.fMateria());
+    const grupo = this.fGrupo();
+    const id = this.fId();
+    const dia = this.fDia();
+    return this.svc
+      .clases()
+      .filter(
+        c =>
+          (!materia || normalizar(c.materia).includes(materia)) &&
+          (grupo === null || c.grupoId === grupo) &&
+          (id === null || c.id === id) &&
+          (!dia || c.dia === dia)
+      );
+  });
+  total = computed(() => this.svc.clases().length);
   fueraDeHorario = this.svc.clasesFueraDeHorario;
   bloques = computed(() => this.distribuir(this.clases()));
   dias = this.svc.dias;
   horas = this.svc.horasGrilla;
   aviso = this.svc.avisoSesiones;
+  textoPausa = this.svc.textoPausa;
+  /** Filas de la grilla que ocupa la pausa del mediodía (null si queda fuera de la grilla). */
+  pausaFilas = computed(() => {
+    const p = this.svc.pausa();
+    const h = this.horas();
+    const desde = Math.max(Math.floor(p.inicio / 60), h[0]);
+    const hasta = Math.min(Math.ceil(p.fin / 60), h[h.length - 1] + 1);
+    return hasta > desde ? `${this.fila(desde)} / ${this.fila(hasta)}` : null;
+  });
   seleccionada = signal<ClaseHorario | null>(null);
 
   moviendo = signal(false);
@@ -89,8 +124,19 @@ export class MiHorarioComponent {
     return hora - this.horas()[0] + 2;
   }
 
+  esPausa(hora: number): boolean {
+    return this.svc.esPausa(hora);
+  }
+
+  limpiarFiltros(): void {
+    this.fMateria.set('');
+    this.fGrupo.set(null);
+    this.fId.set(null);
+    this.fDia.set('');
+  }
+
   asignarEn(dia: Dia, hora: number): void {
-    if (!this.auth.esGestor()) return;
+    if (!this.auth.esGestor() || this.esPausa(hora)) return;
     this.router.navigate(['/horario/asignar'], { queryParams: { dia, hora } });
   }
 

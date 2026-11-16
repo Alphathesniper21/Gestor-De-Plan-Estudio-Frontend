@@ -178,3 +178,40 @@ p { margin: 4px 0 0; color: var(--muted); }
 .sin-margen-arriba { margin: 0 0 14px; }
 
 .pista { display: block; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
+
+/* Barra de filtros compartida por Materias, Grupos, Usuarios y Horario */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.filtro { display: flex; flex-direction: column; gap: 5px; flex: 1 1 150px; min-width: 0; }
+.filtro.ancho { flex: 2 1 220px; }
+.filtro.corto { flex: 0 1 110px; }
+.filtro label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+
+.filtro input, .filtro select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.92rem;
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+}
+
+.filtro input:focus, .filtro select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); }
+
+.filtros-pie { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.filtros-pie small { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
+.id-col { color: var(--muted); font-variant-numeric: tabular-nums; }
