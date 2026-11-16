@@ -5,28 +5,23 @@ import { environment } from '../../environments/environment';
 import { mensajeHttp } from './http-error';
 import { GrupoDTO } from '../models/grupo.dto';
 import { HorarioService } from './horario.service';
-import { ParametroService } from './parametro.service';
 
 @Injectable({ providedIn: 'root' })
 export class PublicacionService {
   private http = inject(HttpClient);
   private horario = inject(HorarioService);
-  private parametros = inject(ParametroService);
   private readonly api = environment.apiUrl;
 
   readonly error = signal('');
 
-  private readonly publicadoBack = signal(false);
   private readonly idsPendientes = signal<number[]>([]);
-  private readonly huellaPublicada = signal<string | null>(null);
 
-  /** Foto de las sesiones: en modo mock, el horario deja de estar publicado si ésta cambia. */
-  private readonly huella = computed(() =>
-    JSON.stringify([this.horario.clases().map(c => [c.id, c.grupoId, c.dia, c.horaInicio, c.horaFin]), this.parametros.parametros()])
-  );
-
+  /**
+   * El horario está publicado cuando no queda ninguna sesión en borrador (mock o sesiones locales)
+   * o cuando el back lo indica. Crear o mover una sesión la deja en borrador y lo despublica.
+   */
   readonly publicado = computed(() =>
-    environment.usarMock ? this.huellaPublicada() === this.huella() : this.publicadoBack()
+    environment.usarMock ? this.horario.totalSesiones() > 0 && this.horario.sinPublicar() === 0 : this.horario.publicadoBack()
   );
 
   /** Sesiones que quedaron fuera de la jornada o dentro de la pausa con los parámetros actuales. */
@@ -47,10 +42,7 @@ export class PublicacionService {
       next: lista => this.idsPendientes.set((lista ?? []).map(g => g.id)),
       error: e => this.error.set(this.mensajeError(e))
     });
-    this.http.get<boolean>(`${this.api}/horario/estado`).subscribe({
-      next: valor => this.publicadoBack.set(valor === true),
-      error: e => this.error.set(this.mensajeError(e))
-    });
+    this.horario.cargarEstado();
   }
 
   async publicar(): Promise<string | null> {
@@ -60,7 +52,7 @@ export class PublicacionService {
     const fuera = this.fueraDeHorario().length;
     if (fuera) return `No se puede publicar: hay ${fuera} sesión(es) fuera del horario configurado.`;
     if (environment.usarMock) {
-      this.huellaPublicada.set(this.huella());
+      this.horario.marcarTodasPublicadas();
       return null;
     }
     try {
@@ -68,7 +60,9 @@ export class PublicacionService {
     } catch (e) {
       return this.mensajeError(e);
     }
+    this.horario.marcarTodasPublicadas();
     this.cargar();
+    this.horario.cargar();
     return null;
   }
 

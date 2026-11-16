@@ -10,6 +10,8 @@ export interface ClaseHorario {
   horaInicio: number;
   horaFin: number;
   color: string;
+  /** false = borrador: solo la ve el gestor hasta que se publique el horario. */
+  publicada: boolean;
 }
 
 export interface NuevaSesion {

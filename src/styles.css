@@ -215,3 +215,4 @@ p { margin: 4px 0 0; color: var(--muted); }
 .filtros-pie small { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
 
 .id-col { color: var(--muted); font-variant-numeric: tabular-nums; }
+.alert-aviso { background: #fef3c7; color: #92400e; }

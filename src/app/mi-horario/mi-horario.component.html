@@ -5,7 +5,7 @@
       @if (auth.esGestor()) {
         Haz clic en una celda vacía para asignar una sesión en ese espacio.
       } @else {
-        Consulta las sesiones programadas de la semana.
+        Consulta las sesiones publicadas de la semana.
       }
     </p>
   </div>
@@ -23,6 +23,17 @@
     <strong>{{ fueraDeHorario().length }} sesión(es) quedaron fuera del horario configurado</strong>
     (marcadas con borde rojo). Muévelas o elimínalas antes de publicar el horario.
   </div>
+}
+
+@if (auth.esGestor() && sinPublicar()) {
+  <div class="alert alert-aviso">
+    Hay {{ sinPublicar() }} {{ sinPublicar() === 1 ? 'sesión en borrador' : 'sesiones en borrador' }} (borde punteado): los consultantes no las ven.
+    Cuando el horario esté completo, publícalo desde el <a routerLink="/dashboard">panel</a>.
+  </div>
+}
+
+@if (!auth.esGestor() && !total()) {
+  <div class="alert alert-aviso">El horario aún no ha sido publicado. Cuando se publique podrás consultarlo aquí.</div>
 }
 
 <div class="filtros">
@@ -52,6 +63,16 @@
       }
     </select>
   </div>
+  @if (auth.esGestor()) {
+    <div class="filtro">
+      <label for="fh-estado">Estado</label>
+      <select id="fh-estado" [ngModel]="fEstado()" (ngModelChange)="fEstado.set($event)">
+        <option value="">Todos</option>
+        <option value="publicada">Publicadas</option>
+        <option value="borrador">Borradores</option>
+      </select>
+    </div>
+  }
   <div class="filtros-pie">
     <small>{{ clases().length }} de {{ total() }}</small>
     <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>
@@ -90,6 +111,7 @@
         class="bloque"
         [class.compacto]="b.carriles > 1"
         [class.fuera]="!dentro(b.clase)"
+        [class.borrador]="auth.esGestor() && !b.clase.publicada"
         [attr.title]="titulo(b.clase)"
         [style.grid-column]="col(b.clase.dia)"
         [style.grid-row]="fila(b.clase.horaInicio) + ' / ' + fila(b.clase.horaFin)"
@@ -103,6 +125,9 @@
         <span>{{ fmt(b.clase.horaInicio) }} - {{ fmt(b.clase.horaFin) }}</span>
         @if (!dentro(b.clase)) {
           <span class="etiqueta-fuera">Fuera de horario</span>
+        }
+        @if (auth.esGestor() && !b.clase.publicada) {
+          <span class="etiqueta-borrador">Borrador</span>
         }
       </div>
     }

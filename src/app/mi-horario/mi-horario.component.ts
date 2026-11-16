@@ -31,14 +31,19 @@ export class MiHorarioComponent {
   fGrupo = signal<number | null>(null);
   fId = signal<number | null>(null);
   fDia = signal<Dia | ''>('');
+  fEstado = signal<'' | 'publicada' | 'borrador'>('');
+  sinPublicar = this.svc.sinPublicar;
 
-  hayFiltros = computed(() => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || !!this.fDia());
+  hayFiltros = computed(
+    () => !!this.fMateria() || this.fGrupo() !== null || this.fId() !== null || !!this.fDia() || !!this.fEstado()
+  );
 
   clases = computed(() => {
     const materia = normalizar(this.fMateria());
     const grupo = this.fGrupo();
     const id = this.fId();
     const dia = this.fDia();
+    const estado = this.fEstado();
     return this.svc
       .clases()
       .filter(
@@ -46,7 +51,8 @@ export class MiHorarioComponent {
           (!materia || normalizar(c.materia).includes(materia)) &&
           (grupo === null || c.grupoId === grupo) &&
           (id === null || c.id === id) &&
-          (!dia || c.dia === dia)
+          (!dia || c.dia === dia) &&
+          (!estado || c.publicada === (estado === 'publicada'))
       );
   });
   total = computed(() => this.svc.clases().length);
@@ -133,6 +139,7 @@ export class MiHorarioComponent {
     this.fGrupo.set(null);
     this.fId.set(null);
     this.fDia.set('');
+    this.fEstado.set('');
   }
 
   asignarEn(dia: Dia, hora: number): void {

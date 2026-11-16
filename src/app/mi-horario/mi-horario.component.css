@@ -99,3 +99,15 @@
   color: var(--muted);
   pointer-events: none;
 }
+
+/* Sesiones en borrador: solo las ve el gestor hasta que se publica el horario */
+.bloque.borrador { border: 2px dashed rgba(255, 255, 255, 0.95); opacity: 0.88; }
+.etiqueta-borrador {
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.92);
+  color: #92400e;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-weight: 700;
+  opacity: 1 !important;
+}
