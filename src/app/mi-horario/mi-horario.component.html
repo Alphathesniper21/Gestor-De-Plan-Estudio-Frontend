@@ -5,7 +5,7 @@
       @if (auth.esGestor()) {
         Haz clic en una celda vacía para asignar una sesión en ese espacio.
       } @else {
-        Consulta las sesiones programadas de la semana.
+        Consulta las sesiones publicadas de la semana.
       }
     </p>
   </div>
@@ -25,6 +25,60 @@
   </div>
 }
 
+@if (auth.esGestor() && sinPublicar()) {
+  <div class="alert alert-aviso">
+    Hay {{ sinPublicar() }} {{ sinPublicar() === 1 ? 'sesión en borrador' : 'sesiones en borrador' }} (borde punteado): los consultantes no las ven.
+    Cuando el horario esté completo, publícalo desde el <a routerLink="/dashboard">panel</a>.
+  </div>
+}
+
+@if (!auth.esGestor() && !total()) {
+  <div class="alert alert-aviso">El horario aún no ha sido publicado. Cuando se publique podrás consultarlo aquí.</div>
+}
+
+<div class="filtros">
+  <div class="filtro ancho">
+    <label for="fh-materia">Nombre de la materia</label>
+    <input id="fh-materia" type="search" placeholder="Ej. Cálculo" [ngModel]="fMateria()" (ngModelChange)="fMateria.set($event)" />
+  </div>
+  <div class="filtro ancho">
+    <label for="fh-grupo">Grupo</label>
+    <select id="fh-grupo" [ngModel]="fGrupo()" (ngModelChange)="fGrupo.set($event)">
+      <option [ngValue]="null">Todos</option>
+      @for (g of grupos(); track g.id) {
+        <option [ngValue]="g.id">{{ g.etiqueta }}</option>
+      }
+    </select>
+  </div>
+  <div class="filtro corto">
+    <label for="fh-id">ID sesión</label>
+    <input id="fh-id" type="number" min="1" placeholder="Ej. 5" [ngModel]="fId()" (ngModelChange)="fId.set($event)" />
+  </div>
+  <div class="filtro">
+    <label for="fh-dia">Día</label>
+    <select id="fh-dia" [ngModel]="fDia()" (ngModelChange)="fDia.set($event)">
+      <option value="">Todos</option>
+      @for (d of dias; track d) {
+        <option [value]="d">{{ d }}</option>
+      }
+    </select>
+  </div>
+  @if (auth.esGestor()) {
+    <div class="filtro">
+      <label for="fh-estado">Estado</label>
+      <select id="fh-estado" [ngModel]="fEstado()" (ngModelChange)="fEstado.set($event)">
+        <option value="">Todos</option>
+        <option value="publicada">Publicadas</option>
+        <option value="borrador">Borradores</option>
+      </select>
+    </div>
+  }
+  <div class="filtros-pie">
+    <small>{{ clases().length }} de {{ total() }}</small>
+    <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>
+  </div>
+</div>
+
 <div class="card calendario-wrap">
   <div class="calendario" [style.grid-template-rows]="'44px repeat(' + horas().length + ', 58px)'">
     @for (d of dias; track d) {
@@ -32,12 +86,15 @@
     }
 
     @for (h of horas(); track h) {
-      <div class="hora" [style.grid-row]="fila(h)" [style.grid-column]="1">{{ fmt(h) }}</div>
+      <div class="hora" [class.hora-almuerzo]="esPausa(h)" [style.grid-row]="fila(h)" [style.grid-column]="1">{{ fmt(h) }}</div>
       @for (d of dias; track d) {
         <button
           class="celda"
           type="button"
+          [class.almuerzo]="esPausa(h)"
           [disabled]="!auth.esGestor()"
+          [attr.aria-disabled]="esPausa(h) ? 'true' : null"
+          [attr.aria-label]="esPausa(h) ? 'Franja de almuerzo' : 'Asignar sesión el ' + d + ' a las ' + fmt(h)"
           [style.grid-row]="fila(h)"
           [style.grid-column]="col(d)"
           (click)="asignarEn(d, h)"
@@ -45,11 +102,16 @@
       }
     }
 
+    @if (pausaFilas(); as filasPausa) {
+      <div class="franja-almuerzo" [style.grid-row]="filasPausa">🍽️ Almuerzo · {{ textoPausa() }}</div>
+    }
+
     @for (b of bloques(); track b.clase.id) {
       <div
         class="bloque"
         [class.compacto]="b.carriles > 1"
         [class.fuera]="!dentro(b.clase)"
+        [class.borrador]="auth.esGestor() && !b.clase.publicada"
         [attr.title]="titulo(b.clase)"
         [style.grid-column]="col(b.clase.dia)"
         [style.grid-row]="fila(b.clase.horaInicio) + ' / ' + fila(b.clase.horaFin)"
@@ -63,6 +125,9 @@
         <span>{{ fmt(b.clase.horaInicio) }} - {{ fmt(b.clase.horaFin) }}</span>
         @if (!dentro(b.clase)) {
           <span class="etiqueta-fuera">Fuera de horario</span>
+        }
+        @if (auth.esGestor() && !b.clase.publicada) {
+          <span class="etiqueta-borrador">Borrador</span>
         }
       </div>
     }

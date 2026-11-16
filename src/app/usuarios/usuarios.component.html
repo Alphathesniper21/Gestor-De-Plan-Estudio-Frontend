@@ -19,7 +19,7 @@
     </div>
     <div class="field">
       <label>Usuario</label>
-      <input type="text" [(ngModel)]="username" [disabled]="editandoId !== null" />
+      <input type="text" [(ngModel)]="username" />
       <small class="pista">Mínimo 4 caracteres: letras, números, punto, guion o guion bajo.</small>
     </div>
     <div class="field">
@@ -29,7 +29,7 @@
     </div>
     <div class="field">
       <label>Rol</label>
-      <select [(ngModel)]="rol" [disabled]="editandoMiCuenta">
+      <select [(ngModel)]="rol" [disabled]="editandoPropio">
         <option value="GESTOR">GESTOR</option>
         <option value="CONSULTANTE">CONSULTANTE</option>
       </select>
@@ -55,13 +55,42 @@
   @if (errorApi()) {
     <div class="alert alert-error sin-margen-arriba">{{ errorApi() }}</div>
   }
+
+  <div class="filtros">
+    <div class="filtro ancho">
+      <label for="fu-nombre">Nombre o usuario</label>
+      <input id="fu-nombre" type="search" placeholder="Ej. María, mgomez" [ngModel]="fNombre()" (ngModelChange)="fNombre.set($event)" />
+    </div>
+    <div class="filtro ancho">
+      <label for="fu-correo">Correo</label>
+      <input id="fu-correo" type="search" placeholder="Ej. unbosque.edu.co" [ngModel]="fCorreo()" (ngModelChange)="fCorreo.set($event)" />
+    </div>
+    <div class="filtro corto">
+      <label for="fu-id">ID</label>
+      <input id="fu-id" type="number" min="1" placeholder="Ej. 3" [ngModel]="fId()" (ngModelChange)="fId.set($event)" />
+    </div>
+    <div class="filtro">
+      <label for="fu-rol">Rol</label>
+      <select id="fu-rol" [ngModel]="fRol()" (ngModelChange)="fRol.set($event)">
+        <option value="">Todos</option>
+        <option value="GESTOR">GESTOR</option>
+        <option value="CONSULTANTE">CONSULTANTE</option>
+      </select>
+    </div>
+    <div class="filtros-pie">
+      <small>{{ visibles().length }} de {{ usuarios().length }}</small>
+      <button class="btn btn-outline btn-sm" type="button" [disabled]="!hayFiltros()" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+  </div>
+
   @if (cargando()) {
     <div class="vacio">Cargando...</div>
-  } @else if (usuarios().length) {
+  } @else if (visibles().length) {
     <div class="tabla-wrap">
       <table class="tabla">
         <thead>
           <tr>
+            <th>ID</th>
             <th>Nombre</th>
             <th>Usuario</th>
             <th>Correo</th>
@@ -70,8 +99,9 @@
           </tr>
         </thead>
         <tbody>
-          @for (u of usuarios(); track u.id) {
+          @for (u of visibles(); track u.id) {
             <tr>
+              <td class="id-col">{{ u.id }}</td>
               <td>{{ u.nombre }}</td>
               <td>{{ u.username }}</td>
               <td>{{ u.correo }}</td>
@@ -86,6 +116,6 @@
       </table>
     </div>
   } @else {
-    <div class="vacio">No hay usuarios para mostrar.</div>
+    <div class="vacio">{{ hayFiltros() ? 'Ningún usuario coincide con los filtros.' : 'No hay usuarios para mostrar.' }}</div>
   }
 </div>

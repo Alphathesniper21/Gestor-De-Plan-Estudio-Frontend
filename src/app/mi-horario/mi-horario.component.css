@@ -81,3 +81,33 @@
   color: #991b1b;
   font-weight: 700;
 }
+
+/* Franja de almuerzo */
+.celda.almuerzo {
+  background: repeating-linear-gradient(135deg, #f1f5f9, #f1f5f9 8px, #e2e8f0 8px, #e2e8f0 16px);
+  cursor: not-allowed;
+}
+.hora-almuerzo { font-weight: 700; color: var(--navy); }
+.franja-almuerzo {
+  grid-column: 2 / -1;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Sesiones en borrador: solo las ve el gestor hasta que se publica el horario */
+.bloque.borrador { border: 2px dashed rgba(255, 255, 255, 0.95); opacity: 0.88; }
+.etiqueta-borrador {
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.92);
+  color: #92400e;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-weight: 700;
+  opacity: 1 !important;
+}
